@@ -1,0 +1,43 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: shoppi-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/shoppi}
+    username: ${DB_USER:shoppi}
+    password: ${DB_PASS:shoppi}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: ${JPA_SHOW_SQL:false}
+
+  jackson:
+    default-property-inclusion: non_null
+
+shoppi:
+  jwt:
+    # En producción SIEMPRE sobreescribir con la variable de entorno JWT_SECRET.
+    secret: ${JWT_SECRET:dev-secret-key-change-me-shoppi-please-set-JWT_SECRET-env-0123456789}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.shoppi: ${LOG_LEVEL:INFO}
