@@ -1,0 +1,47 @@
+# ============================================
+# Documentación local (no se versiona)
+# ============================================
+docs/
+
+# ============================================
+# Java / Maven (backend)
+# ============================================
+target/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+
+# ============================================
+# Android / Gradle (android)
+# ============================================
+.gradle/
+build/
+captures/
+.cxx/
+release/
+*.apk
+*.aab
+*.ap_
+*.dex
+local.properties
+
+# ============================================
+# IDE / Sistema
+# ============================================
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Secretos (NUNCA commitear)
+# ============================================
+.env
+.env.*
+google-services.json
+serviceAccount*.json
+*.jks
+*.keystore
