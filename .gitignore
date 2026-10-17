@@ -26,6 +26,9 @@ release/
 *.dex
 local.properties
 
+# El wrapper de Gradle SÍ se versiona (excepción al *.jar de arriba)
+!**/gradle/wrapper/gradle-wrapper.jar
+
 # ============================================
 # IDE / Sistema
 # ============================================
