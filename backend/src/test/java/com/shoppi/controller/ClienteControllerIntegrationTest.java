@@ -5,9 +5,11 @@ import com.shoppi.dto.cliente.ClienteRequest;
 import com.shoppi.entity.Cliente;
 import com.shoppi.entity.Usuario;
 import com.shoppi.repository.ClienteRepository;
+import com.shoppi.repository.DetalleVentaRepository;
 import com.shoppi.repository.InventarioRepository;
 import com.shoppi.repository.ProductoRepository;
 import com.shoppi.repository.UsuarioRepository;
+import com.shoppi.repository.VentaRepository;
 import com.shoppi.security.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,6 +65,12 @@ class ClienteControllerIntegrationTest {
     private InventarioRepository inventarios;
 
     @Autowired
+    private VentaRepository ventas;
+
+    @Autowired
+    private DetalleVentaRepository detalles;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -75,6 +83,8 @@ class ClienteControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        detalles.deleteAll();
+        ventas.deleteAll();
         inventarios.deleteAll();
         productos.deleteAll();
         clientes.deleteAll();
