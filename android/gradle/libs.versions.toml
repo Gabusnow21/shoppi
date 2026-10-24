@@ -1,0 +1,30 @@
+[versions]
+agp = "9.2.1"
+ksp = "2.3.6"
+
+room = "2.8.5"
+work = "2.12.0"
+gson = "2.14.0"
+retrofit = "2.11.0"
+coroutines = "1.10.2"
+
+junit = "4.13.2"
+
+[libraries]
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+
+coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
