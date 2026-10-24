@@ -19,6 +19,8 @@ import com.shoppi.ui.components.PlaceholderScreen
 import com.shoppi.ui.dashboard.DashboardScreen
 import com.shoppi.ui.login.LoginScreen
 import com.shoppi.ui.login.RegisterScreen
+import com.shoppi.ui.productos.ProductoFormScreen
+import com.shoppi.ui.productos.ProductoListScreen
 
 /**
  * Grafo de navegación base. Los destinos apuntan a placeholders que se
@@ -98,7 +100,12 @@ fun ShoppiNavGraph(
                     },
                 )
             }
-            composable(Routes.PRODUCTOS) { PlaceholderScreen("Productos (T-124)") }
+            composable(Routes.PRODUCTOS) {
+                ProductoListScreen(
+                    onAgregar = { navController.navigate(Routes.productoForm()) },
+                    onEditar = { id -> navController.navigate(Routes.productoForm(id)) },
+                )
+            }
             composable(Routes.TERMINAL) { PlaceholderScreen("Punto de venta (T-153)") }
             composable(Routes.CLIENTES) { PlaceholderScreen("Clientes (T-141)") }
             composable(Routes.REPORTES) { PlaceholderScreen("Reportes (T-161)") }
@@ -117,7 +124,15 @@ fun ShoppiNavGraph(
                         defaultValue = ""
                     },
                 ),
-            ) { PlaceholderScreen("Form producto (T-125)") }
+            ) { entry ->
+                ProductoFormScreen(
+                    productoId = entry.arguments
+                        ?.getString(Routes.ARG_PRODUCTO_FORM_ID)
+                        ?.takeIf { it.isNotBlank() },
+                    onGuardado = { navController.popBackStack() },
+                    onVolver = { navController.popBackStack() },
+                )
+            }
             composable(Routes.CARRITO) { PlaceholderScreen("Carrito (T-154)") }
             composable(
                 route = Routes.TICKET,

@@ -26,6 +26,13 @@ class ProductoRepository(
     fun observar(): Flow<List<Producto>> =
         session.idUsuario()?.let { dao.observar(it) } ?: emptyFlow()
 
+    /** Producto local por id (para editar). */
+    suspend fun porId(id: String): Producto? = dao.porId(id)
+
+    /** Productos pendientes de sincronizar del usuario activo. */
+    fun observarPendientes(): Flow<Int> =
+        session.idUsuario()?.let { dao.contarPendientes(it) } ?: emptyFlow()
+
     suspend fun crear(
         nombre: String,
         descripcion: String = "",
