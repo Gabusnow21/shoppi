@@ -1,0 +1,25 @@
+# Perfil de producción (IaaS). Activar con SPRING_PROFILES_ACTIVE=prod.
+# Todas las credenciales se inyectan por variables de entorno; nunca se hardcodean.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+shoppi:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
+
+management:
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.shoppi: INFO

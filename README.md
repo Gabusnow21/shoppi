@@ -18,9 +18,8 @@ sobre PostgreSQL.
 
 ```
 shoppi/
-├── backend/    # Spring Boot (API REST + PostgreSQL) — Fase 1
-├── android/    # Kotlin: Room + Retrofit + sync offline-first (sin UI todavía)
-└── docs/       # Documentación local (NO versionada)
+├── backend/    # Spring Boot (API REST + PostgreSQL)
+├── android/    # App Kotlin (Room + Retrofit + Compose) — Fase 2
 ```
 
 > `docs/` (plan de desarrollo, contrato API, modelo de datos, guías) vive solo en local
@@ -42,13 +41,40 @@ Nunca se hace push directo a `main` ni a `develop`.
 
 ## Cómo correr el backend
 
-> Pendiente: el proyecto Spring Boot se inicializa en la Fase 1 (T-010).
+Requisitos: **JDK 17+** y **PostgreSQL** en ejecución.
+
+1. Crear la base de datos y el usuario (una vez):
+
+```bash
+psql -U postgres -c "CREATE USER shoppi WITH PASSWORD 'shoppi';"
+psql -U postgres -c "CREATE DATABASE shoppi OWNER shoppi;"
+```
+
+2. Configurar credenciales por variables de entorno (tienen defaults de desarrollo):
+
+```bash
+export DB_URL="jdbc:postgresql://localhost:5432/shoppi"   # default
+export DB_USER="shoppi"                                    # default
+export DB_PASS="shoppi"                                    # default
+export JWT_SECRET="una-clave-larga-y-secreta-de-al-menos-32-caracteres"
+```
+
+3. Arrancar la API:
 
 ```bash
 cd backend
 ./mvnw spring-boot:run
 # API disponible en http://localhost:8080
 ```
+
+4. Verificar que responde:
+
+```bash
+curl http://localhost:8080/api/ping          # {"status":"UP","service":"shoppi",...}
+curl http://localhost:8080/actuator/health   # {"status":"UP"}
+```
+
+> Perfil de producción: `SPRING_PROFILES_ACTIVE=prod` (exige `DB_URL`, `DB_USER`, `DB_PASS` y `JWT_SECRET` por entorno y valida el schema con `ddl-auto=validate`).
 
 ## Cómo correr la app Android
 
