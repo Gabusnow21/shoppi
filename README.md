@@ -19,7 +19,7 @@ sobre PostgreSQL.
 ```
 shoppi/
 ├── backend/    # Spring Boot (API REST + PostgreSQL) — Fase 1
-├── android/    # App Kotlin (Room + Retrofit + Compose) — Fase 2
+├── android/    # Kotlin: Room + Retrofit + sync offline-first (sin UI todavía)
 └── docs/       # Documentación local (NO versionada)
 ```
 
@@ -52,15 +52,50 @@ cd backend
 
 ## Cómo correr la app Android
 
-> Pendiente: el proyecto Android se inicializa en la Fase 2 (T-100).
+> Estado actual: está integrado el **núcleo de datos y sincronización**
+> (Room + Retrofit + WorkManager), **sin pantallas**. La UI (Compose) se
+> implementa en la Fase 2 del plan.
 
-1. Abrir la carpeta `android/` en Android Studio.
-2. Sincronizar Gradle y ejecutar en emulador o dispositivo físico:
+Requisitos: **JDK 17+**, **Android SDK 36.1** y un `android/local.properties` con
+`sdk.dir=...` (no se versiona).
 
 ```bash
 cd android
-./gradlew assembleDebug
+./gradlew :app:testDebugUnitTest   # pruebas unitarias del núcleo
+./gradlew :app:assembleDebug       # compila el APK (sin UI todavía)
 ```
+
+### Núcleo Android integrado
+
+- **Room como fuente de verdad** (`data/model`, `data/local`): cada registro nace
+  con `syncState = PENDING`, usa un UUID local y guarda el `remoteId` cuando la
+  API confirma el alta. Las líneas de venta viajan como JSON (`itemsJson`).
+- **DAO remoto con Retrofit** (`data/remote`): contrato de `api_specification.md`
+  para auth, productos, clientes y ventas. La URL base por defecto es
+  `http://10.0.2.2:8080/api/` (emulador) en `RetrofitClient`.
+- **Sincronización offline-first** (`sync`): `SyncManager` empuja productos →
+  clientes → ventas y luego hace pull resolviendo conflictos con `SyncPolicy`
+  (last-write-wins por `updatedAt`; un cambio local pendiente nunca se pierde).
+  `SyncErrors` distingue errores de red (siguen `PENDING`) de errores de
+  validación (pasan a `FAILED`). `NetworkMonitor` expone la conectividad y
+  WorkManager ejecuta la sincronización cada 15 min y tras cada mutación.
+- **Utilidades** (`util`): validadores de auth/producto/cliente/venta, hash
+  SHA-256 + salt para el login offline, `SessionManager` (JWT en
+  SharedPreferences) y `VentaCalculator` (IVA 13 %).
+- **Pruebas**: `android/app/src/test` cubre política de conflictos, detección de
+  errores de red, mapeos DTO, convertidores, validadores, cálculo de totales y
+  hash de contraseñas.
+
+### Limitaciones conocidas
+
+- No incluye inventario, reportes ni pantallas: solo la capa funcional de datos.
+- El login offline requiere haber iniciado sesión antes en el dispositivo; la
+  sesión offline no tiene JWT, así que para sincronizar hay que volver a iniciar
+  sesión con red.
+- El pull no reconcilia borrados hechos en otros dispositivos (la API de listado
+  no expone tombstones).
+- El descuento de stock de una venta es responsabilidad transaccional del backend;
+  el cliente no lo duplica localmente.
 
 ## Seguridad
 
