@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -12,7 +14,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.shoppi.ShoppiApp
 import com.shoppi.ui.components.PlaceholderScreen
+import com.shoppi.ui.dashboard.DashboardScreen
+import com.shoppi.ui.login.LoginScreen
+import com.shoppi.ui.login.RegisterScreen
 
 /**
  * Grafo de navegación base. Los destinos apuntan a placeholders que se
@@ -28,6 +34,11 @@ fun ShoppiNavGraph(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val showBottomBar = currentRoute != null && currentRoute in Routes.topLevel
+
+    val context = LocalContext.current
+    val container = remember(context) {
+        (context.applicationContext as ShoppiApp).container
+    }
 
     Scaffold(
         bottomBar = {
@@ -52,21 +63,41 @@ fun ShoppiNavGraph(
         ) {
             // --- Auth ---
             composable(Routes.LOGIN) {
-                PlaceholderScreen(
-                    title = "Login (T-114)",
-                    actionLabel = "Entrar (temporal)",
-                    onAction = {
+                LoginScreen(
+                    onLoginExitoso = {
                         navController.navigate(Routes.DASHBOARD) {
                             popUpTo(Routes.LOGIN) { inclusive = true }
                             launchSingleTop = true
                         }
                     },
+                    onIrARegistro = { navController.navigate(Routes.REGISTER) },
                 )
             }
-            composable(Routes.REGISTER) { PlaceholderScreen("Registro (T-114)") }
+            composable(Routes.REGISTER) {
+                RegisterScreen(
+                    onRegistroExitoso = {
+                        navController.navigate(Routes.DASHBOARD) {
+                            popUpTo(Routes.LOGIN) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onVolver = { navController.popBackStack() },
+                )
+            }
 
             // --- BottomBar ---
-            composable(Routes.DASHBOARD) { PlaceholderScreen("Dashboard (T-161)") }
+            composable(Routes.DASHBOARD) {
+                DashboardScreen(
+                    nombreUsuario = container.session.nombreCompleto(),
+                    onCerrarSesion = {
+                        container.usuarios.cerrarSesion()
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
             composable(Routes.PRODUCTOS) { PlaceholderScreen("Productos (T-124)") }
             composable(Routes.TERMINAL) { PlaceholderScreen("Punto de venta (T-153)") }
             composable(Routes.CLIENTES) { PlaceholderScreen("Clientes (T-141)") }
