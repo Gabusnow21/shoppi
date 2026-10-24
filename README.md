@@ -78,18 +78,28 @@ curl http://localhost:8080/actuator/health   # {"status":"UP"}
 
 ## Cómo correr la app Android
 
-> Estado actual: está integrado el **núcleo de datos y sincronización**
-> (Room + Retrofit + WorkManager), **sin pantallas**. La UI (Compose) se
-> implementa en la Fase 2 del plan.
+> Estado actual: **núcleo de datos y sincronización** (Room + Retrofit +
+> WorkManager) y **UI Compose** de login, registro y productos. El resto de
+> pantallas se implementa en las siguientes fases del plan.
 
 Requisitos: **JDK 17+**, **Android SDK 36.1** y un `android/local.properties` con
 `sdk.dir=...` (no se versiona).
 
 ```bash
 cd android
-./gradlew :app:testDebugUnitTest   # pruebas unitarias del núcleo
-./gradlew :app:assembleDebug       # compila el APK (sin UI todavía)
+./gradlew :app:testDebugUnitTest   # pruebas unitarias
+./gradlew :app:assembleDebug       # compila el APK
 ```
+
+### UI Android integrada
+
+- **Login y registro** (`ui/login`): formulario con validaciones, visibilidad de
+  contraseña, chip "recordar sesión" y navegación al dashboard. Usa el login
+  offline de `UsuarioRepository` cuando no hay red.
+- **Productos** (`ui/productos`): lista en grid con búsqueda, badge de stock,
+  estado de sincronización, alta/edición y borrado lógico con confirmación.
+- **Tema y navegación** (`ui/theme`, `ui/navigation`): Material 3 dual-theme,
+  BottomBar de 5 destinos y rutas base para las siguientes pantallas.
 
 ### Núcleo Android integrado
 
@@ -114,7 +124,9 @@ cd android
 
 ### Limitaciones conocidas
 
-- No incluye inventario, reportes ni pantallas: solo la capa funcional de datos.
+- No incluye todavía inventario, clientes, ventas ni reportes en la UI.
+- La pantalla de detalle de producto se implementa en una tarea posterior; por
+  ahora tocar una tarjeta abre el formulario de edición.
 - El login offline requiere haber iniciado sesión antes en el dispositivo; la
   sesión offline no tiene JWT, así que para sincronizar hay que volver a iniciar
   sesión con red.
