@@ -1,7 +1,7 @@
 package com.shoppi.sync
 
-import okhttp3.MediaType
-import okhttp3.ResponseBody
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,7 +20,7 @@ class SyncErrorsTest {
     private fun http(codigo: Int): HttpException = HttpException(
         Response.error<Any>(
             codigo,
-            ResponseBody.create(MediaType.parse("application/json"), "{}")
+            "{}".toResponseBody("application/json".toMediaType())
         )
     )
 
