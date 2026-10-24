@@ -4,6 +4,7 @@ import com.shoppi.dto.producto.ProductoRequest;
 import com.shoppi.dto.producto.ProductoResponse;
 import com.shoppi.entity.Producto;
 import com.shoppi.entity.Usuario;
+import com.shoppi.repository.DetalleVentaRepository;
 import com.shoppi.repository.ProductoRepository;
 import com.shoppi.repository.UsuarioRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -27,10 +28,15 @@ public class ProductoService {
 
     private final ProductoRepository productos;
     private final UsuarioRepository usuarios;
+    private final DetalleVentaRepository detallesVenta;
 
-    public ProductoService(ProductoRepository productos, UsuarioRepository usuarios) {
+    public ProductoService(
+            ProductoRepository productos,
+            UsuarioRepository usuarios,
+            DetalleVentaRepository detallesVenta) {
         this.productos = productos;
         this.usuarios = usuarios;
+        this.detallesVenta = detallesVenta;
     }
 
     /** Lista los productos del usuario autenticado. */
@@ -86,7 +92,12 @@ public class ProductoService {
     /** Elimina un producto propio o lanza 404. */
     @Transactional
     public void eliminar(Long usuarioId, Long productoId) {
-        productos.delete(buscarPropio(usuarioId, productoId));
+        Producto producto = buscarPropio(usuarioId, productoId);
+        if (detallesVenta.existsByProductoId(productoId)) {
+            throw new IllegalArgumentException(
+                    "No se puede eliminar el producto porque tiene ventas registradas.");
+        }
+        productos.delete(producto);
     }
 
     private Producto buscarPropio(Long usuarioId, Long productoId) {
