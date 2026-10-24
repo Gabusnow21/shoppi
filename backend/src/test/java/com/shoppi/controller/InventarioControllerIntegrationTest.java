@@ -6,6 +6,7 @@ import com.shoppi.entity.Inventario;
 import com.shoppi.entity.Producto;
 import com.shoppi.entity.TipoMovimiento;
 import com.shoppi.entity.Usuario;
+import com.shoppi.repository.ClienteRepository;
 import com.shoppi.repository.InventarioRepository;
 import com.shoppi.repository.ProductoRepository;
 import com.shoppi.repository.UsuarioRepository;
@@ -60,6 +61,9 @@ class InventarioControllerIntegrationTest {
     private InventarioRepository inventarios;
 
     @Autowired
+    private ClienteRepository clientes;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -76,6 +80,7 @@ class InventarioControllerIntegrationTest {
     void setUp() {
         inventarios.deleteAll();
         productos.deleteAll();
+        clientes.deleteAll();
         usuarios.deleteAll();
 
         juan = usuarios.saveAndFlush(new Usuario(

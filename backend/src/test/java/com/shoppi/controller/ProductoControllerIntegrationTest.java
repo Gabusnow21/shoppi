@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shoppi.dto.producto.ProductoRequest;
 import com.shoppi.entity.Producto;
 import com.shoppi.entity.Usuario;
+import com.shoppi.repository.ClienteRepository;
+import com.shoppi.repository.InventarioRepository;
 import com.shoppi.repository.ProductoRepository;
 import com.shoppi.repository.UsuarioRepository;
 import com.shoppi.security.JwtService;
@@ -56,6 +58,12 @@ class ProductoControllerIntegrationTest {
     private ProductoRepository productos;
 
     @Autowired
+    private ClienteRepository clientes;
+
+    @Autowired
+    private InventarioRepository inventarios;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -68,6 +76,8 @@ class ProductoControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        inventarios.deleteAll();
+        clientes.deleteAll();
         productos.deleteAll();
         usuarios.deleteAll();
 

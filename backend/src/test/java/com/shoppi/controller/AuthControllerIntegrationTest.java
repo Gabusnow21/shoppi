@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shoppi.dto.auth.LoginRequest;
 import com.shoppi.dto.auth.RegisterRequest;
 import com.shoppi.entity.Usuario;
+import com.shoppi.repository.ClienteRepository;
 import com.shoppi.repository.InventarioRepository;
 import com.shoppi.repository.ProductoRepository;
 import com.shoppi.repository.UsuarioRepository;
@@ -50,6 +51,9 @@ class AuthControllerIntegrationTest {
     private InventarioRepository inventarios;
 
     @Autowired
+    private ClienteRepository clientes;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -60,6 +64,7 @@ class AuthControllerIntegrationTest {
         // La base H2 es compartida entre clases: respetar el orden de las FK.
         inventarios.deleteAll();
         productos.deleteAll();
+        clientes.deleteAll();
         usuarios.deleteAll();
     }
 
