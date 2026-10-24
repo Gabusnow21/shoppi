@@ -386,6 +386,29 @@ class VentaControllerIntegrationTest {
     }
 
     @Test
+    void eliminarProductoConVentasDevuelve400YNoBorraElProducto() throws Exception {
+        VentaRequest request = new VentaRequest(
+                null,
+                "EFECTIVO",
+                List.of(new DetalleVentaRequest(arroz.getId(), 2, new BigDecimal("1.50"))));
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenJuan))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(delete("/api/productos/" + arroz.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenJuan)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "No se puede eliminar el producto porque tiene ventas registradas."));
+
+        assertTrue(productos.findById(arroz.getId()).isPresent());
+        assertEquals(48, productos.findById(arroz.getId()).orElseThrow().getStockActual());
+    }
+
+    @Test
     void sinTokenDevuelve401() throws Exception {
         mockMvc.perform(get(URL))
                 .andExpect(status().isUnauthorized())
