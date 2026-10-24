@@ -102,6 +102,26 @@ public class Producto {
         this.imagenUrl = imagenUrl;
     }
 
+    /** Aplica una entrada de inventario incrementando el stock. */
+    public void registrarEntrada(int cantidad) {
+        if (cantidad <= 0) {
+            throw new IllegalArgumentException("La cantidad debe ser mayor que 0.");
+        }
+        stockActual += cantidad;
+    }
+
+    /** Aplica una salida validando que haya stock suficiente. */
+    public void registrarSalida(int cantidad) {
+        if (cantidad <= 0) {
+            throw new IllegalArgumentException("La cantidad debe ser mayor que 0.");
+        }
+        if (cantidad > stockActual) {
+            throw new IllegalArgumentException(
+                    "Stock insuficiente. Disponible: " + stockActual + ".");
+        }
+        stockActual -= cantidad;
+    }
+
     @PrePersist
     void alCrear() {
         LocalDateTime ahora = LocalDateTime.now();

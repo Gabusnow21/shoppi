@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shoppi.dto.auth.LoginRequest;
 import com.shoppi.dto.auth.RegisterRequest;
 import com.shoppi.entity.Usuario;
+import com.shoppi.repository.InventarioRepository;
+import com.shoppi.repository.ProductoRepository;
 import com.shoppi.repository.UsuarioRepository;
 import com.shoppi.security.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +44,12 @@ class AuthControllerIntegrationTest {
     private UsuarioRepository usuarios;
 
     @Autowired
+    private ProductoRepository productos;
+
+    @Autowired
+    private InventarioRepository inventarios;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -49,6 +57,9 @@ class AuthControllerIntegrationTest {
 
     @BeforeEach
     void limpiarUsuarios() {
+        // La base H2 es compartida entre clases: respetar el orden de las FK.
+        inventarios.deleteAll();
+        productos.deleteAll();
         usuarios.deleteAll();
     }
 
