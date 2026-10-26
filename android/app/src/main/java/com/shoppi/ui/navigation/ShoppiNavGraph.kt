@@ -15,6 +15,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.shoppi.ShoppiApp
+import com.shoppi.ui.clientes.ClienteFormScreen
+import com.shoppi.ui.clientes.ClienteListScreen
 import com.shoppi.ui.components.PlaceholderScreen
 import com.shoppi.ui.dashboard.DashboardScreen
 import com.shoppi.ui.login.LoginScreen
@@ -107,7 +109,12 @@ fun ShoppiNavGraph(
                 )
             }
             composable(Routes.TERMINAL) { PlaceholderScreen("Punto de venta (T-153)") }
-            composable(Routes.CLIENTES) { PlaceholderScreen("Clientes (T-141)") }
+            composable(Routes.CLIENTES) {
+                ClienteListScreen(
+                    onAgregar = { navController.navigate(Routes.clienteForm()) },
+                    onEditar = { id -> navController.navigate(Routes.clienteForm(id)) },
+                )
+            }
             composable(Routes.REPORTES) { PlaceholderScreen("Reportes (T-161)") }
 
             // --- Sub-rutas ---
@@ -128,6 +135,23 @@ fun ShoppiNavGraph(
                 ProductoFormScreen(
                     productoId = entry.arguments
                         ?.getString(Routes.ARG_PRODUCTO_FORM_ID)
+                        ?.takeIf { it.isNotBlank() },
+                    onGuardado = { navController.popBackStack() },
+                    onVolver = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.CLIENTE_FORM,
+                arguments = listOf(
+                    navArgument(Routes.ARG_CLIENTE_FORM_ID) {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                ),
+            ) { entry ->
+                ClienteFormScreen(
+                    clienteId = entry.arguments
+                        ?.getString(Routes.ARG_CLIENTE_FORM_ID)
                         ?.takeIf { it.isNotBlank() },
                     onGuardado = { navController.popBackStack() },
                     onVolver = { navController.popBackStack() },

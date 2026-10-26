@@ -98,6 +98,8 @@ cd android
   offline de `UsuarioRepository` cuando no hay red.
 - **Productos** (`ui/productos`): lista en grid con búsqueda, badge de stock,
   estado de sincronización, alta/edición y borrado lógico con confirmación.
+- **Clientes** (`ui/clientes`): lista con búsqueda por nombre, teléfono o correo,
+  alta/edición con validaciones y borrado lógico con confirmación.
 - **Tema y navegación** (`ui/theme`, `ui/navigation`): Material 3 dual-theme,
   BottomBar de 5 destinos y rutas base para las siguientes pantallas.
 
