@@ -21,6 +21,9 @@ class ClienteRepository(
     fun observar(): Flow<List<Cliente>> =
         session.idUsuario()?.let { dao.observar(it) } ?: emptyFlow()
 
+    /** Cliente local por id (para editar). */
+    suspend fun porId(id: String): Cliente? = dao.porId(id)
+
     suspend fun crear(
         nombre: String,
         telefono: String = "",
