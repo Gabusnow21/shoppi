@@ -25,6 +25,7 @@ import com.shoppi.ui.login.LoginScreen
 import com.shoppi.ui.login.RegisterScreen
 import com.shoppi.ui.productos.ProductoFormScreen
 import com.shoppi.ui.productos.ProductoListScreen
+import com.shoppi.ui.reportes.ReportesScreen
 import com.shoppi.ui.ventas.CarritoScreen
 import com.shoppi.ui.ventas.PuntoVentaScreen
 import com.shoppi.ui.ventas.VentaViewModel
@@ -137,7 +138,7 @@ fun ShoppiNavGraph(
                     onEditar = { id -> navController.navigate(Routes.clienteForm(id)) },
                 )
             }
-            composable(Routes.REPORTES) { PlaceholderScreen("Reportes (T-161)") }
+            composable(Routes.REPORTES) { ReportesScreen() }
 
             // --- Sub-rutas ---
             composable(Routes.INVENTARIO) {
