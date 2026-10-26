@@ -79,8 +79,9 @@ curl http://localhost:8080/actuator/health   # {"status":"UP"}
 ## Cómo correr la app Android
 
 > Estado actual: **núcleo de datos y sincronización** (Room + Retrofit +
-> WorkManager) y **UI Compose** de login, registro y productos. El resto de
-> pantallas se implementa en las siguientes fases del plan.
+> WorkManager) y **UI Compose** de login, registro, productos, clientes y punto
+> de venta. El resto de pantallas se implementa en las siguientes fases del
+> plan.
 
 Requisitos: **JDK 17+**, **Android SDK 36.1** y un `android/local.properties` con
 `sdk.dir=...` (no se versiona).
@@ -100,6 +101,11 @@ cd android
   estado de sincronización, alta/edición y borrado lógico con confirmación.
 - **Clientes** (`ui/clientes`): lista con búsqueda por nombre, teléfono o correo,
   alta/edición con validaciones y borrado lógico con confirmación.
+- **Punto de venta** (`ui/ventas`): catálogo con búsqueda y badge de stock que
+  agrega al carrito al tocar; el carrito ajusta cantidades (tope = stock actual),
+  permite elegir cliente opcional y método de pago, y muestra subtotal + IVA 13 %
+  antes de confirmar. La venta se guarda en Room con `syncState = PENDING` y la
+  sincroniza el `SyncManager`; el stock lo descuenta el backend.
 - **Tema y navegación** (`ui/theme`, `ui/navigation`): Material 3 dual-theme,
   BottomBar de 5 destinos y rutas base para las siguientes pantallas.
 
@@ -126,7 +132,7 @@ cd android
 
 ### Limitaciones conocidas
 
-- No incluye todavía inventario, clientes, ventas ni reportes en la UI.
+- No incluye todavía inventario ni reportes en la UI.
 - La pantalla de detalle de producto se implementa en una tarea posterior; por
   ahora tocar una tarjeta abre el formulario de edición.
 - El login offline requiere haber iniciado sesión antes en el dispositivo; la
@@ -136,6 +142,10 @@ cd android
   no expone tombstones).
 - El descuento de stock de una venta es responsabilidad transaccional del backend;
   el cliente no lo duplica localmente.
+- La API se llama por `http://` sobre `10.0.2.2` (solo el emulador). Android 9+
+  bloquea el tráfico en claro, así que para probar online todavía hay que
+  permitirlo en el build de debug y, desde un teléfono físico, cambiar la URL
+  base por la IP de la PC.
 
 ## Seguridad
 

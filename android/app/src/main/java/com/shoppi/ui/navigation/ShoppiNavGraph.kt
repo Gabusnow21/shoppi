@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.shoppi.ShoppiApp
 import com.shoppi.ui.clientes.ClienteFormScreen
 import com.shoppi.ui.clientes.ClienteListScreen
@@ -23,6 +24,9 @@ import com.shoppi.ui.login.LoginScreen
 import com.shoppi.ui.login.RegisterScreen
 import com.shoppi.ui.productos.ProductoFormScreen
 import com.shoppi.ui.productos.ProductoListScreen
+import com.shoppi.ui.ventas.CarritoScreen
+import com.shoppi.ui.ventas.PuntoVentaScreen
+import com.shoppi.ui.ventas.VentaViewModel
 
 /**
  * Grafo de navegación base. Los destinos apuntan a placeholders que se
@@ -43,6 +47,15 @@ fun ShoppiNavGraph(
     val container = remember(context) {
         (context.applicationContext as ShoppiApp).container
     }
+
+    // Una sola instancia para compartir el carrito entre punto de venta y carrito.
+    val ventaViewModel: VentaViewModel = viewModel(
+        factory = VentaViewModel.factory(
+            ventas = container.ventas,
+            productos = container.productos,
+            clientes = container.clientes,
+        ),
+    )
 
     Scaffold(
         bottomBar = {
@@ -95,6 +108,8 @@ fun ShoppiNavGraph(
                     nombreUsuario = container.session.nombreCompleto(),
                     onCerrarSesion = {
                         container.usuarios.cerrarSesion()
+                        // El carrito no debe sobrevivir a la sesión.
+                        ventaViewModel.limpiarCarrito()
                         navController.navigate(Routes.LOGIN) {
                             popUpTo(0) { inclusive = true }
                             launchSingleTop = true
@@ -108,7 +123,12 @@ fun ShoppiNavGraph(
                     onEditar = { id -> navController.navigate(Routes.productoForm(id)) },
                 )
             }
-            composable(Routes.TERMINAL) { PlaceholderScreen("Punto de venta (T-153)") }
+            composable(Routes.TERMINAL) {
+                PuntoVentaScreen(
+                    onIrACarrito = { navController.navigate(Routes.CARRITO) },
+                    viewModel = ventaViewModel,
+                )
+            }
             composable(Routes.CLIENTES) {
                 ClienteListScreen(
                     onAgregar = { navController.navigate(Routes.clienteForm()) },
@@ -157,7 +177,13 @@ fun ShoppiNavGraph(
                     onVolver = { navController.popBackStack() },
                 )
             }
-            composable(Routes.CARRITO) { PlaceholderScreen("Carrito (T-154)") }
+            composable(Routes.CARRITO) {
+                CarritoScreen(
+                    onConfirmado = { navController.popBackStack() },
+                    onVolver = { navController.popBackStack() },
+                    viewModel = ventaViewModel,
+                )
+            }
             composable(
                 route = Routes.TICKET,
                 arguments = listOf(navArgument(Routes.ARG_VENTA_ID) { type = NavType.LongType }),
