@@ -8,7 +8,10 @@ import com.shoppi.data.remote.dto.MovimientoRequest
 import com.shoppi.data.remote.dto.MovimientoResponse
 import com.shoppi.data.remote.dto.ProductoRequest
 import com.shoppi.data.remote.dto.ProductoResponse
+import com.shoppi.data.remote.dto.ProductoMasVendidoResponse
 import com.shoppi.data.remote.dto.RegisterRequest
+import com.shoppi.data.remote.dto.ReporteInventarioResponse
+import com.shoppi.data.remote.dto.ReporteVentasResponse
 import com.shoppi.data.remote.dto.VentaRequest
 import com.shoppi.data.remote.dto.VentaResponse
 import retrofit2.http.Body
@@ -84,4 +87,26 @@ interface ApiService {
 
     @POST("inventario/movimiento")
     suspend fun crearMovimiento(@Body request: MovimientoRequest): MovimientoResponse
+
+    // -------------------------------------------------------------- reportes
+
+    /** Ventas agrupadas por día dentro del rango del período. */
+    @GET("reportes/ventas")
+    suspend fun reporteVentas(
+        @Query("periodo") periodo: String,
+        @Query("fechaInicio") fechaInicio: String?,
+        @Query("fechaFin") fechaFin: String?
+    ): ReporteVentasResponse
+
+    /** Ranking de productos más vendidos, opcionalmente acotado por fechas. */
+    @GET("reportes/productos-mas-vendidos")
+    suspend fun productosMasVendidos(
+        @Query("limite") limite: Int,
+        @Query("fechaInicio") fechaInicio: String?,
+        @Query("fechaFin") fechaFin: String?
+    ): List<ProductoMasVendidoResponse>
+
+    /** Estado actual del inventario (stock, valor y productos bajo mínimo). */
+    @GET("reportes/inventario")
+    suspend fun reporteInventario(): ReporteInventarioResponse
 }

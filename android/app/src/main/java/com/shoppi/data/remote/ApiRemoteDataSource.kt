@@ -8,7 +8,10 @@ import com.shoppi.data.remote.dto.MovimientoRequest
 import com.shoppi.data.remote.dto.MovimientoResponse
 import com.shoppi.data.remote.dto.ProductoRequest
 import com.shoppi.data.remote.dto.ProductoResponse
+import com.shoppi.data.remote.dto.ProductoMasVendidoResponse
 import com.shoppi.data.remote.dto.RegisterRequest
+import com.shoppi.data.remote.dto.ReporteInventarioResponse
+import com.shoppi.data.remote.dto.ReporteVentasResponse
 import com.shoppi.data.remote.dto.VentaRequest
 import com.shoppi.data.remote.dto.VentaResponse
 
@@ -51,4 +54,18 @@ class ApiRemoteDataSource(private val api: ApiService) : RemoteDataSource {
 
     override suspend fun crearMovimiento(request: MovimientoRequest): MovimientoResponse =
         api.crearMovimiento(request)
+
+    override suspend fun reporteVentas(
+        periodo: String,
+        fechaInicio: String?,
+        fechaFin: String?
+    ): ReporteVentasResponse = api.reporteVentas(periodo, fechaInicio, fechaFin)
+
+    override suspend fun productosMasVendidos(
+        limite: Int,
+        fechaInicio: String?,
+        fechaFin: String?
+    ): List<ProductoMasVendidoResponse> = api.productosMasVendidos(limite, fechaInicio, fechaFin)
+
+    override suspend fun reporteInventario(): ReporteInventarioResponse = api.reporteInventario()
 }

@@ -80,8 +80,8 @@ curl http://localhost:8080/actuator/health   # {"status":"UP"}
 
 > Estado actual: **núcleo de datos y sincronización** (Room + Retrofit +
 > WorkManager) y **UI Compose** de login, registro, productos, clientes, punto
-> de venta e inventario. El resto de pantallas se implementa en las siguientes
-> fases del plan.
+> de venta, inventario y reportes. El resto de pantallas se implementa en las
+> siguientes fases del plan.
 
 Requisitos: **JDK 17+**, **Android SDK 36.1** y un `android/local.properties` con
 `sdk.dir=...` (no se versiona).
@@ -110,6 +110,10 @@ cd android
   producto y por rango de fechas (hoy / 7 días / 30 días), con resumen de
   movimientos y diálogo para registrar un movimiento nuevo. El stock lo aplica
   el servidor en la misma transacción que guarda el movimiento.
+- **Reportes** (`ui/reportes`): tres pestañas — ventas por período (diario /
+  semanal / mensual) con totales y serie diaria, ranking de productos más
+  vendidos y estado del inventario (productos, stock bajo y valor). Se consultan
+  en vivo a la API y se pueden recargar.
 - **Tema y navegación** (`ui/theme`, `ui/navigation`): Material 3 dual-theme,
   BottomBar de 5 destinos y rutas base para las siguientes pantallas.
 
@@ -132,12 +136,13 @@ cd android
   SHA-256 + salt para el login offline, `SessionManager` (JWT en
   SharedPreferences) y `VentaCalculator` (IVA 13 %).
 - **Pruebas**: `android/app/src/test` cubre política de conflictos, detección de
-  errores de red, mapeos DTO (incluido inventario), convertidores, validadores,
+  errores de red, mapeos DTO (inventario y reportes), convertidores, validadores,
   cálculo de totales, rangos de fecha y hash de contraseñas.
 
 ### Limitaciones conocidas
 
-- No incluye todavía reportes en la UI.
+- Los reportes se consultan en vivo: no se guardan en el dispositivo, así que
+  sin conexión no hay datos que mostrar (solo el aviso para recargar).
 - La pantalla de detalle de producto se implementa en una tarea posterior; por
   ahora tocar una tarjeta abre el formulario de edición.
 - El login offline requiere haber iniciado sesión antes en el dispositivo; la
