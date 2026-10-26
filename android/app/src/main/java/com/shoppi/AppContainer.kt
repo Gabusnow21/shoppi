@@ -9,6 +9,7 @@ import com.shoppi.data.remote.RetrofitClient
 import com.shoppi.data.repository.ClienteRepository
 import com.shoppi.data.repository.InventarioRepository
 import com.shoppi.data.repository.ProductoRepository
+import com.shoppi.data.repository.ReporteRepository
 import com.shoppi.data.repository.UsuarioRepository
 import com.shoppi.data.repository.VentaRepository
 import com.shoppi.sync.NetworkMonitor
@@ -77,6 +78,9 @@ class AppContainer(contexto: Context) {
         remote = remote,
         session = session
     )
+
+    /** Reportes: solo lectura contra la API, sin tabla local. */
+    val reportes: ReporteRepository = ReporteRepository(remote)
 
     fun programarSyncPeriodico() {
         SyncScheduler.programarPeriodico(appContext)
