@@ -4,6 +4,8 @@ import com.shoppi.data.remote.dto.AuthResponse
 import com.shoppi.data.remote.dto.ClienteRequest
 import com.shoppi.data.remote.dto.ClienteResponse
 import com.shoppi.data.remote.dto.LoginRequest
+import com.shoppi.data.remote.dto.MovimientoRequest
+import com.shoppi.data.remote.dto.MovimientoResponse
 import com.shoppi.data.remote.dto.ProductoRequest
 import com.shoppi.data.remote.dto.ProductoResponse
 import com.shoppi.data.remote.dto.RegisterRequest
@@ -15,6 +17,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 /**
  * Contrato Retrofit de la API REST de Shoppi.
@@ -65,4 +68,20 @@ interface ApiService {
 
     @POST("ventas")
     suspend fun crearVenta(@Body request: VentaRequest): VentaResponse
+
+    /**
+     * Historial de movimientos de inventario.
+     *
+     * Todos los filtros son opcionales: un `null` se omite en la query string.
+     * Las fechas viajan como `yyyy-MM-dd` (ISO local date).
+     */
+    @GET("inventario")
+    suspend fun inventario(
+        @Query("productoId") productoId: Long?,
+        @Query("fechaInicio") fechaInicio: String?,
+        @Query("fechaFin") fechaFin: String?
+    ): List<MovimientoResponse>
+
+    @POST("inventario/movimiento")
+    suspend fun crearMovimiento(@Body request: MovimientoRequest): MovimientoResponse
 }

@@ -79,9 +79,9 @@ curl http://localhost:8080/actuator/health   # {"status":"UP"}
 ## Cómo correr la app Android
 
 > Estado actual: **núcleo de datos y sincronización** (Room + Retrofit +
-> WorkManager) y **UI Compose** de login, registro, productos, clientes y punto
-> de venta. El resto de pantallas se implementa en las siguientes fases del
-> plan.
+> WorkManager) y **UI Compose** de login, registro, productos, clientes, punto
+> de venta e inventario. El resto de pantallas se implementa en las siguientes
+> fases del plan.
 
 Requisitos: **JDK 17+**, **Android SDK 36.1** y un `android/local.properties` con
 `sdk.dir=...` (no se versiona).
@@ -106,6 +106,10 @@ cd android
   permite elegir cliente opcional y método de pago, y muestra subtotal + IVA 13 %
   antes de confirmar. La venta se guarda en Room con `syncState = PENDING` y la
   sincroniza el `SyncManager`; el stock lo descuenta el backend.
+- **Inventario** (`ui/inventario`): historial de entradas y salidas filtrable por
+  producto y por rango de fechas (hoy / 7 días / 30 días), con resumen de
+  movimientos y diálogo para registrar un movimiento nuevo. El stock lo aplica
+  el servidor en la misma transacción que guarda el movimiento.
 - **Tema y navegación** (`ui/theme`, `ui/navigation`): Material 3 dual-theme,
   BottomBar de 5 destinos y rutas base para las siguientes pantallas.
 
@@ -115,11 +119,12 @@ cd android
   con `syncState = PENDING`, usa un UUID local y guarda el `remoteId` cuando la
   API confirma el alta. Las líneas de venta viajan como JSON (`itemsJson`).
 - **DAO remoto con Retrofit** (`data/remote`): contrato de `api_specification.md`
-  para auth, productos, clientes y ventas. La URL base por defecto es
+  para auth, productos, clientes, ventas e inventario. La URL base por defecto es
   `http://10.0.2.2:8080/api/` (emulador) en `RetrofitClient`.
 - **Sincronización offline-first** (`sync`): `SyncManager` empuja productos →
-  clientes → ventas y luego hace pull resolviendo conflictos con `SyncPolicy`
-  (last-write-wins por `updatedAt`; un cambio local pendiente nunca se pierde).
+  clientes → ventas → movimientos de inventario y luego hace pull resolviendo
+  conflictos con `SyncPolicy` (last-write-wins por `updatedAt`; un cambio local
+  pendiente nunca se pierde; el inventario es append-only y solo se agregan).
   `SyncErrors` distingue errores de red (siguen `PENDING`) de errores de
   validación (pasan a `FAILED`). `NetworkMonitor` expone la conectividad y
   WorkManager ejecuta la sincronización cada 15 min y tras cada mutación.
@@ -127,12 +132,12 @@ cd android
   SHA-256 + salt para el login offline, `SessionManager` (JWT en
   SharedPreferences) y `VentaCalculator` (IVA 13 %).
 - **Pruebas**: `android/app/src/test` cubre política de conflictos, detección de
-  errores de red, mapeos DTO, convertidores, validadores, cálculo de totales y
-  hash de contraseñas.
+  errores de red, mapeos DTO (incluido inventario), convertidores, validadores,
+  cálculo de totales, rangos de fecha y hash de contraseñas.
 
 ### Limitaciones conocidas
 
-- No incluye todavía inventario ni reportes en la UI.
+- No incluye todavía reportes en la UI.
 - La pantalla de detalle de producto se implementa en una tarea posterior; por
   ahora tocar una tarjeta abre el formulario de edición.
 - El login offline requiere haber iniciado sesión antes en el dispositivo; la
@@ -142,6 +147,8 @@ cd android
   no expone tombstones).
 - El descuento de stock de una venta es responsabilidad transaccional del backend;
   el cliente no lo duplica localmente.
+- El historial de inventario es de solo lectura: ni la app ni la API permiten
+  editar ni borrar un movimiento ya registrado.
 - La API se llama por `http://` sobre `10.0.2.2` (solo el emulador). Android 9+
   bloquea el tráfico en claro, así que para probar online todavía hay que
   permitirlo en el build de debug y, desde un teléfono físico, cambiar la URL

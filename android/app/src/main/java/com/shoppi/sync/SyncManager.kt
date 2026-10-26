@@ -1,6 +1,7 @@
 package com.shoppi.sync
 
 import com.shoppi.data.local.ClienteDao
+import com.shoppi.data.local.InventarioDao
 import com.shoppi.data.local.ProductoDao
 import com.shoppi.data.local.VentaDao
 import com.shoppi.data.model.SyncState
@@ -16,7 +17,9 @@ import kotlinx.coroutines.withContext
  * 1. push de productos pendientes (para que la venta pueda resolver sus ids);
  * 2. push de clientes pendientes;
  * 3. push de ventas pendientes;
- * 4. pull de productos, clientes y ventas, resolviendo con [SyncPolicy].
+ * 4. push de movimientos de inventario pendientes;
+ * 5. pull de productos, clientes, ventas e inventario, resolviendo con
+ *    [SyncPolicy] (el inventario es append-only: solo se agregan).
  *
  * Resiliencia:
  * - Sin red o sin JWT: no se marca nada como `FAILED`; los registros siguen
@@ -33,6 +36,7 @@ class SyncManager(
     private val productos: ProductoDao,
     private val clientes: ClienteDao,
     private val ventas: VentaDao,
+    private val inventario: InventarioDao,
     private val session: SessionManager,
     private val remote: RemoteDataSource,
     private val hayRed: () -> Boolean = { true },
@@ -63,10 +67,12 @@ class SyncManager(
         empujarProductos(usuarioId, conteo)
         if (!conteo.sinConexion) empujarClientes(usuarioId, conteo)
         if (!conteo.sinConexion) empujarVentas(usuarioId, conteo)
+        if (!conteo.sinConexion) empujarInventario(usuarioId, conteo)
 
         if (!conteo.sinConexion) jalarProductos(usuarioId, conteo)
         if (!conteo.sinConexion) jalarClientes(usuarioId, conteo)
         if (!conteo.sinConexion) jalarVentas(usuarioId, conteo)
+        if (!conteo.sinConexion) jalarInventario(usuarioId, conteo)
 
         ResultadoSync(
             enviados = conteo.enviados,
@@ -167,6 +173,47 @@ class SyncManager(
         }
     }
 
+    private suspend fun empujarInventario(usuarioId: String, conteo: Conteo) {
+        val pendientes = inventario.pendientes(usuarioId)
+        if (pendientes.isEmpty()) return
+
+        // Los productos se empujaron primero: el mapa ya tiene sus ids remotos.
+        val mapaProductos = productos.todos(usuarioId).associate { it.id to it.remoteId }
+
+        for (movimiento in pendientes) {
+            // La API es append-only (solo POST): no se reenvía nada ya creado.
+            if (movimiento.remoteId != null) continue
+
+            val idRemoto = movimiento.productoId?.let { mapaProductos[it] }
+            if (idRemoto == null) {
+                // Sin producto referenciable no se puede armar el cuerpo. Si el
+                // producto local sigue existiendo es que su push aún falló y el
+                // movimiento espera (PENDING); si ya no existe, es un error.
+                val productoExiste = movimiento.productoId != null &&
+                    productos.porId(movimiento.productoId) != null
+                if (!productoExiste) {
+                    inventario.marcarSync(movimiento.id, SyncState.FAILED)
+                    conteo.fallidos++
+                }
+                continue
+            }
+
+            try {
+                val creado = remote.crearMovimiento(
+                    movimiento.toRequest { mapaProductos[it] }
+                )
+                inventario.marcarSincronizado(movimiento.id, creado.id)
+                conteo.enviados++
+            } catch (error: Exception) {
+                if (debeMarcarFallido(error, conteo)) {
+                    inventario.marcarSync(movimiento.id, SyncState.FAILED)
+                    conteo.fallidos++
+                }
+                if (conteo.sinConexion) return
+            }
+        }
+    }
+
     // ------------------------------------------------------------------- pull
 
     private suspend fun jalarProductos(usuarioId: String, conteo: Conteo) {
@@ -225,6 +272,41 @@ class SyncManager(
                 val local = ventas.porRemoteId(usuarioId, remoto.id)
                 val ganador = SyncPolicy.resolverVenta(local, mapeado) ?: continue
                 ventas.guardarDesdeSincronizacion(ganador)
+                conteo.recibidos++
+            }
+        } catch (error: Exception) {
+            if (debeMarcarFallido(error, conteo)) conteo.fallidos++
+        }
+    }
+
+    private suspend fun jalarInventario(usuarioId: String, conteo: Conteo) {
+        try {
+            val mapaProductos = productos.todos(usuarioId)
+                .mapNotNull { producto ->
+                    producto.remoteId?.let {
+                        it to ProductoRemotoLocal(producto.id, producto.nombre)
+                    }
+                }
+                .toMap()
+
+            val movimientosRemotos = remote.listarInventario(
+                productoId = null,
+                fechaInicio = null,
+                fechaFin = null
+            )
+
+            for (remoto in movimientosRemotos) {
+                // Los movimientos locales ya enviados llegan con su remoteId:
+                // no se duplican.
+                if (inventario.porRemoteId(usuarioId, remoto.id) != null) continue
+
+                inventario.guardarDesdeSincronizacion(
+                    remoto.toLocal(
+                        usuarioId = usuarioId,
+                        productoLocal = { mapaProductos[it] },
+                        ahora = ahora()
+                    )
+                )
                 conteo.recibidos++
             }
         } catch (error: Exception) {

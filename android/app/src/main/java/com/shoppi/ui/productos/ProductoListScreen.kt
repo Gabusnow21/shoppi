@@ -10,9 +10,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -48,6 +50,7 @@ import com.shoppi.ui.theme.Dimens
 fun ProductoListScreen(
     onAgregar: () -> Unit,
     onEditar: (String) -> Unit,
+    onInventario: () -> Unit,
     viewModel: ProductoViewModel = viewModel(factory = productoViewModelFactory()),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -62,7 +65,19 @@ fun ProductoListScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Productos") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Productos") },
+                actions = {
+                    IconButton(onClick = onInventario) {
+                        Icon(
+                            imageVector = Icons.Filled.Inventory,
+                            contentDescription = "Inventario",
+                        )
+                    }
+                },
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             ExtendedFloatingActionButton(

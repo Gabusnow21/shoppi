@@ -2,11 +2,14 @@ package com.shoppi.sync
 
 import com.shoppi.data.model.Cliente
 import com.shoppi.data.model.MetodoPago
+import com.shoppi.data.model.MovimientoInventario
 import com.shoppi.data.model.Producto
 import com.shoppi.data.model.SyncState
+import com.shoppi.data.model.TipoMovimiento
 import com.shoppi.data.model.Venta
 import com.shoppi.data.model.VentaItem
 import com.shoppi.data.remote.dto.ClienteResponse
+import com.shoppi.data.remote.dto.MovimientoResponse
 import com.shoppi.data.remote.dto.ProductoResponse
 import com.shoppi.data.remote.dto.VentaItemResponse
 import com.shoppi.data.remote.dto.VentaResponse
@@ -241,5 +244,83 @@ class SyncMappersTest {
         )
 
         assertEquals(MetodoPago.EFECTIVO, venta.metodoPago)
+    }
+
+    // ------------------------------------------------------------- inventario
+
+    @Test
+    fun `el movimiento local se convierte al request con el id remoto`() {
+        val movimiento = MovimientoInventario(
+            id = "mov-1",
+            usuarioId = "uid-1",
+            productoId = "local-1",
+            productoNombre = "Arroz",
+            tipoMovimiento = TipoMovimiento.ENTRADA,
+            cantidad = 20,
+            fecha = 1L,
+            descripcion = "Compra a proveedor"
+        )
+
+        val request = movimiento.toRequest { idLocal ->
+            if (idLocal == "local-1") 7L else null
+        }
+
+        assertEquals(7L, request.productoId)
+        assertEquals("ENTRADA", request.tipoMovimiento)
+        assertEquals(20, request.cantidad)
+        assertEquals("Compra a proveedor", request.descripcion)
+    }
+
+    @Test
+    fun `un movimiento sin producto resoluble falla explicitamente`() {
+        val movimiento = MovimientoInventario(
+            id = "mov-2",
+            usuarioId = "uid-1",
+            productoId = null,
+            productoNombre = "Sin producto",
+            fecha = 1L
+        )
+
+        assertThrows(IllegalStateException::class.java) {
+            movimiento.toRequest { null }
+        }
+    }
+
+    @Test
+    fun `la respuesta de movimiento se convierte a entidad local sincronizada`() {
+        val movimiento = MovimientoResponse(
+            id = 91L,
+            productoId = 7L,
+            productoNombre = "Arroz",
+            tipoMovimiento = "SALIDA",
+            cantidad = 3,
+            fecha = "2026-10-24T18:30:00",
+            descripcion = "Merma"
+        ).toLocal(
+            usuarioId = "uid-1",
+            productoLocal = { ProductoRemotoLocal("local-1", "Arroz") },
+            ahora = 5L
+        )
+
+        assertEquals(91L, movimiento.remoteId)
+        assertEquals("local-1", movimiento.productoId)
+        assertEquals("Arroz", movimiento.productoNombre)
+        assertEquals(TipoMovimiento.SALIDA, movimiento.tipoMovimiento)
+        assertEquals(3, movimiento.cantidad)
+        assertEquals("Merma", movimiento.descripcion)
+        assertEquals(SyncState.SYNCED, movimiento.syncState)
+        assertTrue(movimiento.fecha > 0L)
+    }
+
+    @Test
+    fun `un tipo de movimiento desconocido cae en entrada`() {
+        val movimiento = MovimientoResponse(id = 92L, tipoMovimiento = "AJUSTE").toLocal(
+            usuarioId = "uid-1",
+            ahora = 8L
+        )
+
+        assertEquals(TipoMovimiento.ENTRADA, movimiento.tipoMovimiento)
+        assertEquals(8L, movimiento.fecha)
+        assertNull(movimiento.productoId)
     }
 }

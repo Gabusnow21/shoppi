@@ -20,6 +20,7 @@ import com.shoppi.ui.clientes.ClienteFormScreen
 import com.shoppi.ui.clientes.ClienteListScreen
 import com.shoppi.ui.components.PlaceholderScreen
 import com.shoppi.ui.dashboard.DashboardScreen
+import com.shoppi.ui.inventario.InventarioScreen
 import com.shoppi.ui.login.LoginScreen
 import com.shoppi.ui.login.RegisterScreen
 import com.shoppi.ui.productos.ProductoFormScreen
@@ -121,6 +122,7 @@ fun ShoppiNavGraph(
                 ProductoListScreen(
                     onAgregar = { navController.navigate(Routes.productoForm()) },
                     onEditar = { id -> navController.navigate(Routes.productoForm(id)) },
+                    onInventario = { navController.navigate(Routes.INVENTARIO) },
                 )
             }
             composable(Routes.TERMINAL) {
@@ -138,7 +140,9 @@ fun ShoppiNavGraph(
             composable(Routes.REPORTES) { PlaceholderScreen("Reportes (T-161)") }
 
             // --- Sub-rutas ---
-            composable(Routes.INVENTARIO) { PlaceholderScreen("Inventario (T-132)") }
+            composable(Routes.INVENTARIO) {
+                InventarioScreen(onVolver = { navController.popBackStack() })
+            }
             composable(
                 route = Routes.PRODUCTO_DETAIL,
                 arguments = listOf(navArgument(Routes.ARG_PRODUCTO_ID) { type = NavType.StringType }),

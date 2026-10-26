@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.shoppi.data.model.Cliente
+import com.shoppi.data.model.MovimientoInventario
 import com.shoppi.data.model.Producto
 import com.shoppi.data.model.Usuario
 import com.shoppi.data.model.Venta
@@ -18,8 +19,14 @@ import com.shoppi.data.model.Venta
  * Se mantiene una sola instancia por proceso.
  */
 @Database(
-    entities = [Usuario::class, Producto::class, Cliente::class, Venta::class],
-    version = 1,
+    entities = [
+        Usuario::class,
+        Producto::class,
+        Cliente::class,
+        Venta::class,
+        MovimientoInventario::class
+    ],
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -32,6 +39,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun clienteDao(): ClienteDao
 
     abstract fun ventaDao(): VentaDao
+
+    abstract fun inventarioDao(): InventarioDao
 
     companion object {
         @Volatile

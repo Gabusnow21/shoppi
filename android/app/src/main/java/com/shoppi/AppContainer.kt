@@ -7,6 +7,7 @@ import com.shoppi.data.remote.ApiService
 import com.shoppi.data.remote.RemoteDataSource
 import com.shoppi.data.remote.RetrofitClient
 import com.shoppi.data.repository.ClienteRepository
+import com.shoppi.data.repository.InventarioRepository
 import com.shoppi.data.repository.ProductoRepository
 import com.shoppi.data.repository.UsuarioRepository
 import com.shoppi.data.repository.VentaRepository
@@ -40,6 +41,7 @@ class AppContainer(contexto: Context) {
         productos = database.productoDao(),
         clientes = database.clienteDao(),
         ventas = database.ventaDao(),
+        inventario = database.inventarioDao(),
         session = session,
         remote = remote,
         hayRed = { networkMonitor.hayRed() }
@@ -59,6 +61,13 @@ class AppContainer(contexto: Context) {
 
     val ventas: VentaRepository = VentaRepository(
         dao = database.ventaDao(),
+        session = session,
+        alCambiar = { SyncScheduler.sincronizarAhora(appContext) }
+    )
+
+    val inventario: InventarioRepository = InventarioRepository(
+        dao = database.inventarioDao(),
+        productos = database.productoDao(),
         session = session,
         alCambiar = { SyncScheduler.sincronizarAhora(appContext) }
     )
