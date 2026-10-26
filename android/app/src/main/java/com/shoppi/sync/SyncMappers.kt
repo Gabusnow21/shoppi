@@ -2,12 +2,16 @@ package com.shoppi.sync
 
 import com.shoppi.data.model.Cliente
 import com.shoppi.data.model.MetodoPago
+import com.shoppi.data.model.MovimientoInventario
 import com.shoppi.data.model.Producto
 import com.shoppi.data.model.SyncState
+import com.shoppi.data.model.TipoMovimiento
 import com.shoppi.data.model.Venta
 import com.shoppi.data.model.VentaItem
 import com.shoppi.data.remote.dto.ClienteRequest
 import com.shoppi.data.remote.dto.ClienteResponse
+import com.shoppi.data.remote.dto.MovimientoRequest
+import com.shoppi.data.remote.dto.MovimientoResponse
 import com.shoppi.data.remote.dto.ProductoRequest
 import com.shoppi.data.remote.dto.ProductoResponse
 import com.shoppi.data.remote.dto.VentaItemRequest
@@ -168,6 +172,60 @@ fun VentaResponse.toLocal(
     )
 }
 
+// ---------------------------------------------------------------- inventario
+
+/**
+ * Convierte el movimiento local al cuerpo de `POST /api/inventario/movimiento`.
+ *
+ * El servidor trabaja con ids numéricos: si el producto todavía no tiene
+ * `remoteId` se lanza [IllegalStateException] (el `SyncManager` empuja los
+ * productos antes) y el movimiento queda en `FAILED`.
+ */
+fun MovimientoInventario.toRequest(
+    productoRemoteId: (String?) -> Long?
+): MovimientoRequest {
+    val idRemoto = productoRemoteId(productoId)
+        ?: throw IllegalStateException(
+            "El producto '$productoNombre' todavía no tiene id remoto."
+        )
+
+    return MovimientoRequest(
+        productoId = idRemoto,
+        tipoMovimiento = tipoMovimiento.name,
+        cantidad = cantidad,
+        descripcion = descripcion.ifBlank { null }
+    )
+}
+
+/**
+ * Reconstruye un movimiento devuelto por la API.
+ *
+ * El historial es append-only y no tiene conflictos posibles: siempre gana el
+ * registro remoto y se guarda como `SYNCED`.
+ */
+fun MovimientoResponse.toLocal(
+    usuarioId: String,
+    productoLocal: (Long) -> ProductoRemotoLocal? = { null },
+    idLocal: String = UUID.randomUUID().toString(),
+    ahora: Long = System.currentTimeMillis()
+): MovimientoInventario {
+    val producto = productoLocal(productoId)
+    val nombreRemoto = productoNombre?.takeIf { it.isNotBlank() }
+
+    return MovimientoInventario(
+        id = idLocal,
+        remoteId = id,
+        usuarioId = usuarioId,
+        productoId = producto?.idLocal,
+        productoNombre = nombreRemoto ?: producto?.nombre.orEmpty(),
+        tipoMovimiento = tipoMovimiento.aTipoMovimiento(),
+        cantidad = cantidad,
+        fecha = fecha.aEpochMillis().takeIf { it > 0L } ?: ahora,
+        descripcion = descripcion.orEmpty(),
+        syncState = SyncState.SYNCED
+    )
+}
+
 // ---------------------------------------------------------------- conversiones
 
 /** Interpreta la fecha ISO-8601 del backend; si no es válida usa 0. */
@@ -190,4 +248,9 @@ private fun String?.aEpochMillis(): Long {
 private fun String?.aMetodoPago(): MetodoPago {
     val texto = this ?: return MetodoPago.EFECTIVO
     return runCatching { MetodoPago.valueOf(texto) }.getOrDefault(MetodoPago.EFECTIVO)
+}
+
+private fun String?.aTipoMovimiento(): TipoMovimiento {
+    val texto = this ?: return TipoMovimiento.ENTRADA
+    return runCatching { TipoMovimiento.valueOf(texto) }.getOrDefault(TipoMovimiento.ENTRADA)
 }

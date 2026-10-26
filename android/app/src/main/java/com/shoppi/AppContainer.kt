@@ -40,6 +40,7 @@ class AppContainer(contexto: Context) {
         productos = database.productoDao(),
         clientes = database.clienteDao(),
         ventas = database.ventaDao(),
+        inventario = database.inventarioDao(),
         session = session,
         remote = remote,
         hayRed = { networkMonitor.hayRed() }
