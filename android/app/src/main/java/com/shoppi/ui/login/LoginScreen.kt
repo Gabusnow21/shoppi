@@ -40,6 +40,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import com.shoppi.ShoppiApp
 import com.shoppi.ui.theme.Dimens
 
@@ -57,10 +58,15 @@ fun LoginScreen(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     LaunchedEffect(estado.usuario) {
         if (estado.usuario != null) {
             viewModel.consumirSesion()
+            // Registra el token FCM en el backend (best-effort, no bloquea el login).
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                com.shoppi.FcmTokenManager.registrarToken(context)
+            }
             onLoginExitoso()
         }
     }
