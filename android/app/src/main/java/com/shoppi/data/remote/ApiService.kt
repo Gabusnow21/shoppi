@@ -3,6 +3,8 @@ package com.shoppi.data.remote
 import com.shoppi.data.remote.dto.AuthResponse
 import com.shoppi.data.remote.dto.ClienteRequest
 import com.shoppi.data.remote.dto.ClienteResponse
+import com.shoppi.data.remote.dto.FcmTokenRequest
+import com.shoppi.data.remote.dto.FcmTokenResponse
 import com.shoppi.data.remote.dto.LoginRequest
 import com.shoppi.data.remote.dto.MovimientoRequest
 import com.shoppi.data.remote.dto.MovimientoResponse
@@ -109,4 +111,10 @@ interface ApiService {
     /** Estado actual del inventario (stock, valor y productos bajo mínimo). */
     @GET("reportes/inventario")
     suspend fun reporteInventario(): ReporteInventarioResponse
+
+    @POST("dispositivos/fcm-token")
+    suspend fun registrarFcmToken(@Body request: FcmTokenRequest): FcmTokenResponse
+
+    @DELETE("dispositivos/fcm-token")
+    suspend fun borrarFcmToken(@Body request: FcmTokenRequest)
 }
