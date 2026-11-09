@@ -6,8 +6,10 @@ import com.shoppi.data.model.SyncState
 import com.shoppi.util.ClienteValidators
 import com.shoppi.util.ErrorCliente
 import com.shoppi.util.SessionManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import java.util.UUID
 
 /** Repositorio de clientes con el mismo patrón offline-first que ProductoRepository. */
@@ -18,8 +20,11 @@ class ClienteRepository(
     private val alCambiar: () -> Unit = {}
 ) {
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observar(): Flow<List<Cliente>> =
-        session.idUsuario()?.let { dao.observar(it) } ?: emptyFlow()
+        session.idUsuarioFlow.flatMapLatest { id ->
+            if (id.isNullOrBlank()) flowOf(emptyList()) else dao.observar(id)
+        }
 
     /** Cliente local por id (para editar). */
     suspend fun porId(id: String): Cliente? = dao.porId(id)

@@ -8,8 +8,10 @@ import com.shoppi.util.ErrorVenta
 import com.shoppi.util.SessionManager
 import com.shoppi.util.VentaCalculator
 import com.shoppi.util.VentaValidators
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import java.util.UUID
 
 /**
@@ -27,8 +29,11 @@ class VentaRepository(
     private val alCambiar: () -> Unit = {}
 ) {
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observar(): Flow<List<Venta>> =
-        session.idUsuario()?.let { dao.observar(it) } ?: emptyFlow()
+        session.idUsuarioFlow.flatMapLatest { id ->
+            if (id.isNullOrBlank()) flowOf(emptyList()) else dao.observar(id)
+        }
 
     suspend fun registrar(
         clienteId: String?,

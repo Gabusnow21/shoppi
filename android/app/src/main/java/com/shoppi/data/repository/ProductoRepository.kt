@@ -6,8 +6,10 @@ import com.shoppi.data.model.SyncState
 import com.shoppi.util.ErrorProducto
 import com.shoppi.util.ProductoValidators
 import com.shoppi.util.SessionManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import java.util.UUID
 
 /**
@@ -23,15 +25,21 @@ class ProductoRepository(
     private val alCambiar: () -> Unit = {}
 ) {
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observar(): Flow<List<Producto>> =
-        session.idUsuario()?.let { dao.observar(it) } ?: emptyFlow()
+        session.idUsuarioFlow.flatMapLatest { id ->
+            if (id.isNullOrBlank()) flowOf(emptyList()) else dao.observar(id)
+        }
 
     /** Producto local por id (para editar). */
     suspend fun porId(id: String): Producto? = dao.porId(id)
 
     /** Productos pendientes de sincronizar del usuario activo. */
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observarPendientes(): Flow<Int> =
-        session.idUsuario()?.let { dao.contarPendientes(it) } ?: emptyFlow()
+        session.idUsuarioFlow.flatMapLatest { id ->
+            if (id.isNullOrBlank()) flowOf(0) else dao.contarPendientes(id)
+        }
 
     suspend fun crear(
         nombre: String,

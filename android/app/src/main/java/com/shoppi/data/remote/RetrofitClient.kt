@@ -8,7 +8,11 @@ import retrofit2.converter.gson.GsonConverterFactory
  * Fábrica del cliente Retrofit.
  *
  * El JWT se inyecta como `Authorization: Bearer ...` en cada petición. La URL
- * base por defecto apunta al backend local del emulador (`10.0.2.2`).
+ * base sale de `BuildConfig.API_BASE_URL`: en debug apunta a
+ * `http://127.0.0.1:8080/api/` y se usa junto con `adb reverse` (ver
+ * `scripts/prepare-dev.sh`), por lo que funciona en emulador y dispositivo
+ * físico. Se puede sobreescribir con `shoppi.apiBaseUrl` en
+ * `android/local.properties`.
  */
 object RetrofitClient {
 
@@ -16,7 +20,7 @@ object RetrofitClient {
 
     fun crear(
         token: () -> String?,
-        baseUrl: String = BASE_URL_EMULADOR
+        baseUrl: String = com.shoppi.BuildConfig.API_BASE_URL
     ): ApiService {
         val cliente = OkHttpClient.Builder()
             .addInterceptor { cadena ->

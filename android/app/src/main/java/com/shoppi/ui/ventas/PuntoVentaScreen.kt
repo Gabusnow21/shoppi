@@ -96,7 +96,7 @@ fun PuntoVentaScreen(
                     vertical = Dimens.InputPadding,
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.weight(1f),
             ) {
                 if (productos.isEmpty()) {
                     item {

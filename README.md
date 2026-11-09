@@ -92,6 +92,38 @@ cd android
 ./gradlew :app:assembleDebug       # compila el APK
 ```
 
+### Ejecutar desde Android Studio (API automática)
+
+1. Verificá que PostgreSQL esté corriendo y que exista la base `shoppi`.
+2. Conectá el teléfono con depuración USB o iniciá el emulador.
+3. Abrí la carpeta `android/` en Android Studio y presioná **Run**.
+
+Antes de compilar el APK de debug se ejecuta la tarea Gradle
+`prepareDevEnvironment` (`android/scripts/prepare-dev.sh`), que:
+
+- levanta `backend/` con `./mvnw spring-boot:run` si `http://localhost:8080/api/ping`
+  todavía no responde;
+- detecta PostgreSQL en el puerto `5433` (o `5432` como fallback);
+- configura `adb reverse tcp:8080 tcp:8080` en cada dispositivo conectado.
+
+La app debug usa `http://127.0.0.1:8080/api/`, así que el mismo APK funciona en
+emulador y en teléfono físico sin cambiar la URL. El log de la API queda en
+`/tmp/shoppi-backend.log` y se puede detener con:
+
+```bash
+cd android
+./gradlew stopDevBackend
+```
+
+Para usar la IP LAN en lugar de USB, agregá en `android/local.properties`:
+
+```properties
+shoppi.apiBaseUrl=http://192.168.1.13:8080/api/
+```
+
+En ese caso el firewall de la PC debe permitir el puerto `8080`. En CI se puede
+saltar el arranque automático con `SHOPPI_SKIP_DEV_BACKEND=1`.
+
 ### UI Android integrada
 
 - **Login y registro** (`ui/login`): formulario con validaciones, visibilidad de
@@ -154,10 +186,11 @@ cd android
   el cliente no lo duplica localmente.
 - El historial de inventario es de solo lectura: ni la app ni la API permiten
   editar ni borrar un movimiento ya registrado.
-- La API se llama por `http://` sobre `10.0.2.2` (solo el emulador). Android 9+
-  bloquea el tráfico en claro, así que para probar online todavía hay que
-  permitirlo en el build de debug y, desde un teléfono físico, cambiar la URL
-  base por la IP de la PC.
+- La API local se consume por HTTP en claro **solo en debug**
+  (`app/src/debug/AndroidManifest.xml`) y a través de `adb reverse`
+  (`127.0.0.1:8080`). En release se debe usar HTTPS.
+- `adb reverse` se configura al compilar/ejecutar desde Android Studio. Si se
+  desconecta el cable, hay que volver a ejecutar la app desde Android Studio.
 
 ## Seguridad
 

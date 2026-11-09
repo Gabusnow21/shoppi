@@ -2,6 +2,9 @@ package com.shoppi.util
 
 import android.content.Context
 import com.shoppi.data.model.Usuario
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Sesión del usuario en SharedPreferences.
@@ -15,6 +18,17 @@ class SessionManager(contexto: Context) {
     private val prefs =
         contexto.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+    /**
+     * Id del usuario activo como flujo.
+     *
+     * Los repositorios observan este flujo para que sus consultas a Room se
+     * reinicien cuando se inicia o cierra sesión. Sin esto, un ViewModel creado
+     * antes del login (por ejemplo el carrito compartido del punto de venta)
+     * quedaba suscripto para siempre a un flujo vacío.
+     */
+    private val _idUsuario = MutableStateFlow(prefs.getString(KEY_ID, null))
+    val idUsuarioFlow: StateFlow<String?> = _idUsuario.asStateFlow()
+
     var recordarSesion: Boolean
         get() = prefs.getBoolean(KEY_RECORDAR, false)
         private set(value) = prefs.edit().putBoolean(KEY_RECORDAR, value).apply()
@@ -27,7 +41,7 @@ class SessionManager(contexto: Context) {
 
     fun token(): String? = prefs.getString(KEY_TOKEN, null)
 
-    fun idUsuario(): String? = prefs.getString(KEY_ID, null)
+    fun idUsuario(): String? = _idUsuario.value
 
     fun email(): String? = prefs.getString(KEY_EMAIL, null)
 
@@ -61,6 +75,7 @@ class SessionManager(contexto: Context) {
             }
             apply()
         }
+        _idUsuario.value = usuario.id
     }
 
     /** Descarta la sesión activa sin borrar el email recordado. */
@@ -74,6 +89,7 @@ class SessionManager(contexto: Context) {
             remove(KEY_SALT)
             apply()
         }
+        _idUsuario.value = null
     }
 
     fun actualizarNombre(nombre: String) {
@@ -87,6 +103,7 @@ class SessionManager(contexto: Context) {
 
     fun cerrarSesion() {
         prefs.edit().clear().apply()
+        _idUsuario.value = null
     }
 
     companion object {

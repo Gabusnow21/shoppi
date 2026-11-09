@@ -5,8 +5,10 @@ import com.shoppi.data.local.ProductoDao
 import com.shoppi.data.model.MovimientoInventario
 import com.shoppi.data.model.TipoMovimiento
 import com.shoppi.util.SessionManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import java.util.UUID
 
 /**
@@ -30,14 +32,19 @@ class InventarioRepository(
      * Historial filtrado. Todos los filtros son opcionales (`null` = sin
      * filtro) y los rangos de fecha van en epoch millis, ambos inclusive.
      */
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observar(
         productoId: String? = null,
         fechaInicio: Long? = null,
         fechaFin: Long? = null
     ): Flow<List<MovimientoInventario>> =
-        session.idUsuario()
-            ?.let { dao.observar(it, productoId, fechaInicio, fechaFin) }
-            ?: emptyFlow()
+        session.idUsuarioFlow.flatMapLatest { id ->
+            if (id.isNullOrBlank()) {
+                flowOf(emptyList())
+            } else {
+                dao.observar(id, productoId, fechaInicio, fechaFin)
+            }
+        }
 
     suspend fun porId(id: String): MovimientoInventario? = dao.porId(id)
 
