@@ -373,3 +373,43 @@ internet real (Crashlytics no pasa por `adb reverse`).
 `CrashTestActivity` vive solo en `app/src/debug/`, por lo que no se incluye en
 builds release.
 
+
+---
+
+## 10. Prueba de push FCM (end-to-end)
+
+Requiere internet real en el teléfono (FCM no pasa por `adb reverse`) y un
+token FCM registrado.
+
+1. Instalar el APK debug y asegurarse de que la API esté arriba.
+2. Iniciar sesión con el usuario de prueba.
+3. Obtener un token FCM desde la app (o con `firebase.messaging().getToken()`)
+   y registrarlo:
+
+   ```bash
+   curl -X POST http://localhost:8080/api/dispositivos/fcm-token \
+     -H "Authorization: Bearer <JWT>" \
+     -H "Content-Type: application/json" \
+     -d '{"token":"<FCM_TOKEN>","deviceId":"<DEVICE_ID>","plataforma":"ANDROID"}'
+   ```
+
+   Respuesta esperada: `{"ok":true}`.
+
+4. Crear una venta (`POST /api/ventas` o desde la app). El backend envía:
+   - push **"Venta confirmada"** con data `{type: VENTA_CONFIRMADA, ventaId}`.
+   - si algún producto queda con stock ≤ mínimo, push **"Stock bajo"** con
+     data `{type: STOCK_BAJO, productoId}`.
+
+5. Verificar que el push llegue al dispositivo y que la notificación tenga los
+   canales `ventas` / `stock`.
+
+6. Al cerrar sesión, borrar el token:
+
+   ```bash
+   curl -X DELETE http://localhost:8080/api/dispositivos/fcm-token \
+     -H "Authorization: Bearer <JWT>" \
+     -H "Content-Type: application/json" \
+     -d '{"token":"<FCM_TOKEN>"}'
+   ```
+
+   Respuesta esperada: `204 No Content`.

@@ -192,6 +192,34 @@ saltar el arranque automático con `SHOPPI_SKIP_DEV_BACKEND=1`.
 - `adb reverse` se configura al compilar/ejecutar desde Android Studio. Si se
   desconecta el cable, hay que volver a ejecutar la app desde Android Studio.
 
+## Entorno de producción (IaaS)
+
+Variables de entorno que debe definir el despliegue (VM + PostgreSQL). Todas
+tienen default solo para desarrollo; en producción se deben sobreescribir:
+
+| Variable | Descripción | Ejemplo |
+|---|---|---|
+| `SERVER_PORT` | Puerto HTTP del backend | `8080` |
+| `DB_URL` | JDBC de PostgreSQL | `jdbc:postgresql://host:5432/shoppi` |
+| `DB_USER` / `DB_PASS` | Credenciales de la base | `shoppi` / `...` |
+| `JWT_SECRET` | Secreto HS256 (≥ 256 bits) | (generar con `openssl rand -base64 48`) |
+| `JWT_EXPIRATION_MINUTES` | Vigencia del JWT | `1440` |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Ruta a la clave privada o el JSON en crudo | `/opt/shoppi/serviceAccount-shoppi.json` |
+| `JPA_DDL_AUTO` | En producción usar `validate` | `validate` |
+| `JPA_SHOW_SQL` | Logs SQL | `false` |
+| `LOG_LEVEL` | Nivel de log de `com.shoppi` | `INFO` |
+| `SPRING_PROFILES_ACTIVE` | Activa `application-prod.yml` | `prod` |
+
+Notas:
+- `FIREBASE_SERVICE_ACCOUNT_JSON` es **obligatoria**: sin ella el backend no
+  arranca. La clave se descarga desde Firebase Console → Configuración del
+  proyecto → Cuentas de servicio → *Generar nueva clave privada* y se guarda
+  fuera del repositorio.
+- El push FCM se verifica end-to-end con: `POST /api/dispositivos/fcm-token`
+  (registrar un token real), crear una venta (`POST /api/ventas`) y confirmar
+  que llegue el push al dispositivo. El backend expone `POST /api/firebase/custom-token`
+  para que Android suba imágenes a Storage con `signInWithCustomToken`.
+
 ## Seguridad
 
 No se commitean secretos: `google-services.json`, `serviceAccount*.json`, `*.jks`,
