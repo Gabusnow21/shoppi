@@ -18,3 +18,5 @@ shoppi:
     # Secreto exclusivo para pruebas (>= 256 bits para HS256).
     secret: test-secret-shoppi-automatizado-0123456789abcdef0123456789abcdef
     expiration-minutes: 60
+  firebase:
+    service-account-json: classpath:firebase-test-service-account.json

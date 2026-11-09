@@ -28,6 +28,9 @@ shoppi:
     # En producción SIEMPRE sobreescribir con la variable de entorno JWT_SECRET.
     secret: ${JWT_SECRET:dev-secret-key-change-me-shoppi-please-set-JWT_SECRET-env-0123456789}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
+  firebase:
+    # Obligatoria en runtime. Puede ser ruta absoluta a un JSON o el JSON en crudo.
+    service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
 
 management:
   endpoints:

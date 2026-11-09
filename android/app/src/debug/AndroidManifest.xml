@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Solo en debug: la API local se consume por HTTP en claro a través de
+        adb reverse (http://127.0.0.1:8080/api/). Un build release no incluye
+        este permiso y debe usar HTTPS.
+    -->
+    <application android:usesCleartextTraffic="true">
+
+        <!--
+            Pantalla manual para verificar Crashlytics. Vive solo en debug y
+            no se distribuye en release.
+        -->
+        <activity
+            android:name=".CrashTestActivity"
+            android:exported="true"
+            android:label="Prueba Crashlytics"
+            android:theme="@style/Theme.Shoppi" />
+    </application>
+
+</manifest>
