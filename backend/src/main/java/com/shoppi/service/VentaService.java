@@ -50,18 +50,21 @@ public class VentaService {
     private final ProductoRepository productos;
     private final InventarioRepository inventarios;
     private final UsuarioRepository usuarios;
+    private final NotificacionService notificaciones;
 
     public VentaService(
             VentaRepository ventas,
             ClienteRepository clientes,
             ProductoRepository productos,
             InventarioRepository inventarios,
-            UsuarioRepository usuarios) {
+            UsuarioRepository usuarios,
+            NotificacionService notificaciones) {
         this.ventas = ventas;
         this.clientes = clientes;
         this.productos = productos;
         this.inventarios = inventarios;
         this.usuarios = usuarios;
+        this.notificaciones = notificaciones;
     }
 
     /** Registra una venta, descuenta stock y deja el historial de inventario. */
@@ -123,6 +126,19 @@ public class VentaService {
                     TipoMovimiento.SALIDA,
                     linea.cantidad(),
                     "Venta #" + guardada.getId()));
+        }
+
+        notificaciones.enviarVentaConfirmada(usuarioId, guardada.getId(), total);
+        for (LineaVenta linea : lineas) {
+            Producto producto = linea.producto();
+            if (producto.getStockActual() <= producto.getStockMinimo()) {
+                notificaciones.enviarStockBajo(
+                        usuarioId,
+                        producto.getId(),
+                        producto.getNombre(),
+                        producto.getStockActual(),
+                        producto.getStockMinimo());
+            }
         }
 
         return respuesta(guardada);

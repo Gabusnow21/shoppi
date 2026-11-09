@@ -30,10 +30,13 @@ public class InventarioService {
 
     private final InventarioRepository inventarios;
     private final ProductoRepository productos;
+    private final NotificacionService notificaciones;
 
-    public InventarioService(InventarioRepository inventarios, ProductoRepository productos) {
+    public InventarioService(InventarioRepository inventarios, ProductoRepository productos,
+                            NotificacionService notificaciones) {
         this.inventarios = inventarios;
         this.productos = productos;
+        this.notificaciones = notificaciones;
     }
 
     /** Registra una entrada o salida y actualiza el stock del producto. */
@@ -52,6 +55,16 @@ public class InventarioService {
                 request.tipoMovimiento(),
                 request.cantidad(),
                 limpiar(request.descripcion())));
+
+        if (request.tipoMovimiento() == com.shoppi.entity.TipoMovimiento.SALIDA
+                && producto.getStockActual() <= producto.getStockMinimo()) {
+            notificaciones.enviarStockBajo(
+                    usuarioId,
+                    producto.getId(),
+                    producto.getNombre(),
+                    producto.getStockActual(),
+                    producto.getStockMinimo());
+        }
 
         return respuesta(movimiento);
     }
