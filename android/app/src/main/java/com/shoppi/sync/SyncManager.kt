@@ -7,7 +7,10 @@ import com.shoppi.data.local.VentaDao
 import com.shoppi.data.model.SyncState
 import com.shoppi.data.remote.RemoteDataSource
 import com.shoppi.util.SessionManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -74,7 +77,7 @@ class SyncManager(
         if (!conteo.sinConexion) jalarVentas(usuarioId, conteo)
         if (!conteo.sinConexion) jalarInventario(usuarioId, conteo)
 
-        ResultadoSync(
+        return@withContext ResultadoSync(
             enviados = conteo.enviados,
             recibidos = conteo.recibidos,
             fallidos = conteo.fallidos,
@@ -341,4 +344,11 @@ class SyncManager(
             else -> "Sincronización completa: $enviados enviados, $recibidos recibidos."
         }
     }
+    /** Dispara una sincronización one-shot en segundo plano (push FCM SYNC_PULL). */
+    fun requestPull() {
+        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+            runCatching { sincronizarTodo() }
+        }
+    }
+
 }
