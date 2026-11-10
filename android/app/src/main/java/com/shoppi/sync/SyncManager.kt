@@ -1,5 +1,7 @@
 package com.shoppi.sync
 
+import android.os.Bundle
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.shoppi.data.local.ClienteDao
 import com.shoppi.data.local.InventarioDao
 import com.shoppi.data.local.ProductoDao
@@ -43,10 +45,18 @@ class SyncManager(
     private val session: SessionManager,
     private val remote: RemoteDataSource,
     private val hayRed: () -> Boolean = { true },
+    private val syncHabilitado: () -> Boolean = { true },
+    private val analytics: FirebaseAnalytics? = null,
     private val ahora: () -> Long = System::currentTimeMillis
 ) {
 
     suspend fun sincronizarTodo(): ResultadoSync = withContext(Dispatchers.IO) {
+        if (!syncHabilitado()) {
+            return@withContext ResultadoSync(
+                mensaje = "Sincronización pausada por configuración remota."
+            )
+        }
+
         val usuarioId = session.idUsuario()
             ?: return@withContext ResultadoSync(
                 mensaje = "No hay una sesión activa. No se sincronizó."
@@ -76,6 +86,15 @@ class SyncManager(
         if (!conteo.sinConexion) jalarClientes(usuarioId, conteo)
         if (!conteo.sinConexion) jalarVentas(usuarioId, conteo)
         if (!conteo.sinConexion) jalarInventario(usuarioId, conteo)
+
+        analytics?.logEvent(
+            "sync_completed",
+            Bundle().apply {
+                putInt("enviados", conteo.enviados)
+                putInt("recibidos", conteo.recibidos)
+                putInt("fallidos", conteo.fallidos)
+            },
+        )
 
         return@withContext ResultadoSync(
             enviados = conteo.enviados,

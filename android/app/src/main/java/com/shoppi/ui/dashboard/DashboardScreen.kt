@@ -12,6 +12,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import com.shoppi.config.RemoteConfigManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,6 +31,8 @@ fun DashboardScreen(
     nombreUsuario: String?,
     onCerrarSesion: () -> Unit,
 ) {
+    val syncHabilitado by RemoteConfigManager.syncEnabledFlow.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -35,6 +40,14 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (!syncHabilitado) {
+            Text(
+                text = "Sincronización pausada por configuración remota.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+            Spacer(Modifier.height(Dimens.InputPadding))
+        }
         Text(
             text = "Hola, ${nombreUsuario ?: "usuario"}",
             style = MaterialTheme.typography.headlineSmall,
