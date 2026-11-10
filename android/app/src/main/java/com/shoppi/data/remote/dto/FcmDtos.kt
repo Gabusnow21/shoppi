@@ -11,3 +11,8 @@ data class FcmTokenRequest(
 data class FcmTokenResponse(
     val ok: Boolean = true
 )
+
+/** Respuesta de POST /api/firebase/custom-token. */
+data class FirebaseCustomTokenResponse(
+    val customToken: String
+)

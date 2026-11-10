@@ -22,6 +22,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.shoppi.ShoppiApp
+import coil.compose.AsyncImage
 import com.shoppi.ui.theme.Dimens
 
 /**
@@ -55,7 +58,12 @@ fun ProductoFormScreen(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
     val editando = !productoId.isNullOrBlank()
+
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let(viewModel::seleccionarImagen)
+    }
 
     LaunchedEffect(estado.guardado) {
         if (estado.guardado) {
@@ -151,6 +159,44 @@ fun ProductoFormScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            // Imagen del producto (Storage auxiliar).
+            if (estado.imagenLocalUri != null || !estado.imagenUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = estado.imagenLocalUri ?: estado.imagenUrl,
+                    contentDescription = "Imagen del producto",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp),
+                )
+            }
+
+            Button(
+                onClick = { picker.launch("image/*") },
+                enabled = !estado.cargando && !estado.subiendoImagen,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (estado.imagenUrl.isNullOrBlank() && estado.imagenLocalUri == null) "Seleccionar imagen" else "Cambiar imagen")
+            }
+
+            if (estado.imagenLocalUri != null) {
+                Button(
+                    onClick = { viewModel.subirImagen(context) },
+                    enabled = !estado.subiendoImagen,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (estado.subiendoImagen) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.height(22.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("Subir imagen")
+                    }
+                }
+            }
+
             if (estado.error != null) {
                 Text(
                     text = estado.error.orEmpty(),
@@ -200,6 +246,6 @@ private fun productoFormViewModelFactory(
         (context.applicationContext as ShoppiApp).container
     }
     return remember(container, productoId) {
-        ProductoFormViewModel.factory(container.productos, productoId)
+        ProductoFormViewModel.factory(container.productos, container.storage, productoId)
     }
 }
