@@ -12,6 +12,8 @@ import com.shoppi.data.repository.ProductoRepository
 import com.shoppi.data.repository.ReporteRepository
 import com.shoppi.data.repository.UsuarioRepository
 import com.shoppi.data.repository.VentaRepository
+import com.shoppi.config.RemoteConfigManager
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.shoppi.sync.NetworkMonitor
 import com.shoppi.sync.SyncManager
 import com.shoppi.sync.SyncScheduler
@@ -34,7 +36,10 @@ class AppContainer(contexto: Context) {
 
     val networkMonitor: NetworkMonitor = NetworkMonitor(appContext)
 
-    val api: ApiService = RetrofitClient.crear(token = { session.token() })
+    val api: ApiService = RetrofitClient.crear(
+        token = { session.token() },
+        baseUrl = RemoteConfigManager.apiBaseUrl,
+    )
 
     val remote: RemoteDataSource = ApiRemoteDataSource(api)
 
@@ -45,7 +50,9 @@ class AppContainer(contexto: Context) {
         inventario = database.inventarioDao(),
         session = session,
         remote = remote,
-        hayRed = { networkMonitor.hayRed() }
+        hayRed = { networkMonitor.hayRed() },
+        syncHabilitado = { RemoteConfigManager.syncEnabled },
+        analytics = FirebaseAnalytics.getInstance(appContext),
     )
 
     val productos: ProductoRepository = ProductoRepository(

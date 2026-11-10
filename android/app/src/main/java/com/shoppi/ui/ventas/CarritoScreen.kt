@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,10 +63,14 @@ fun CarritoScreen(
     viewModel: VentaViewModel,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(estado.mensajeExito) {
         // El snackbar lo muestra PuntoVentaScreen al volver; aquí solo navegamos.
-        if (estado.mensajeExito != null) onConfirmado()
+        if (estado.mensajeExito != null) {
+            com.shoppi.Observabilidad.logEvento(context, "venta_confirmada")
+            onConfirmado()
+        }
     }
 
     Scaffold(
@@ -145,9 +150,17 @@ fun CarritoScreen(
                     )
                 }
 
+                if (com.shoppi.config.RemoteConfigManager.maintenanceMode) {
+                    Text(
+                        text = "Modo mantenimiento: las ventas están temporalmente deshabilitadas.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
                 Button(
                     onClick = viewModel::confirmar,
-                    enabled = !estado.cargando,
+                    enabled = !estado.cargando && !com.shoppi.config.RemoteConfigManager.maintenanceMode,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(Dimens.ButtonHeight),

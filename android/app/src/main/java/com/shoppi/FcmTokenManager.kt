@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessaging
 import com.shoppi.data.remote.dto.FcmTokenRequest
+import com.shoppi.config.RemoteConfigManager
 import com.shoppi.util.SessionManager
 import kotlinx.coroutines.tasks.await
 
@@ -26,10 +27,8 @@ object FcmTokenManager {
         }
     }
 
-    /** Flag local (hasta que Remote Config lo gobierne en T-250). */
-    fun estaHabilitado(contexto: Context): Boolean =
-        contexto.getSharedPreferences("shoppi_fcm", Context.MODE_PRIVATE)
-            .getBoolean("fcm_enabled", true)
+    /** Flag gobernado por Remote Config (T-250). */
+    fun estaHabilitado(contexto: Context): Boolean = RemoteConfigManager.fcmEnabled
 
     fun setHabilitado(contexto: Context, valor: Boolean) =
         contexto.getSharedPreferences("shoppi_fcm", Context.MODE_PRIVATE)
