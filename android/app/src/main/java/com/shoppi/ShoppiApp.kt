@@ -20,9 +20,13 @@ class ShoppiApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.shoppi.config.RemoteConfigManager.inicializar(this)
         container = AppContainer(this)
         container.programarSyncPeriodico()
         crearCanalesNotificacion()
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            com.shoppi.config.RemoteConfigManager.fetchAndActivate()
+        }
     }
 
     private fun crearCanalesNotificacion() {
