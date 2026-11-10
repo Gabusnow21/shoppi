@@ -5,6 +5,7 @@ import com.shoppi.data.remote.dto.ClienteRequest
 import com.shoppi.data.remote.dto.ClienteResponse
 import com.shoppi.data.remote.dto.FcmTokenRequest
 import com.shoppi.data.remote.dto.FcmTokenResponse
+import com.shoppi.data.remote.dto.FirebaseCustomTokenResponse
 import com.shoppi.data.remote.dto.LoginRequest
 import com.shoppi.data.remote.dto.MovimientoRequest
 import com.shoppi.data.remote.dto.MovimientoResponse
@@ -117,4 +118,7 @@ interface ApiService {
 
     @DELETE("dispositivos/fcm-token")
     suspend fun borrarFcmToken(@Body request: FcmTokenRequest)
+
+    @POST("firebase/custom-token")
+    suspend fun crearFirebaseCustomToken(): FirebaseCustomTokenResponse
 }

@@ -6,7 +6,7 @@ import com.shoppi.data.remote.ApiRemoteDataSource
 import com.shoppi.data.remote.ApiService
 import com.shoppi.data.remote.RemoteDataSource
 import com.shoppi.data.remote.RetrofitClient
-import com.shoppi.data.repository.ClienteRepository
+import com.shoppi.data.remote.StorageDataSourceimport com.shoppi.data.repository.ClienteRepository
 import com.shoppi.data.repository.InventarioRepository
 import com.shoppi.data.repository.ProductoRepository
 import com.shoppi.data.repository.ReporteRepository
@@ -89,6 +89,12 @@ class AppContainer(contexto: Context) {
     /** Reportes: solo lectura contra la API, sin tabla local. */
     val reportes: ReporteRepository = ReporteRepository(remote)
 
+    /** Subida de imágenes a Firebase Storage (auxiliar). */
+    val storage: StorageDataSource = StorageDataSource(
+        api = api,
+        session = session,
+        maxMbProvider = { com.shoppi.config.RemoteConfigManager.storageMaxMb },
+    )
     fun programarSyncPeriodico() {
         SyncScheduler.programarPeriodico(appContext)
     }
