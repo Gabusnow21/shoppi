@@ -267,12 +267,12 @@ Resultado esperado:
 
 | Caso | Descripción                         | Resultado | Observaciones |
 |------|-------------------------------------|-----------|---------------|
-| CP-01 | Login                              |           |               |
+| CP-01 | Login                              | OK (10/11) | Email/clave real; sesión persistida y logout/login probados |
 | CP-02 | Registro                           |           |               |
-| CP-03 | Crear producto                     |           |               |
+| CP-03 | Crear producto                     | PARCIAL   | Sin imagen: bucket de Storage no existe (ver §7.4) |
 | CP-04 | Crear cliente                      |           |               |
-| CP-05 | Movimiento de inventario           |           |               |
-| CP-06 | Venta online                       |           |               |
+| CP-05 | Movimiento de inventario           | OK (indirecto) | Stock descontado por el servidor tras cada venta |
+| CP-06 | Venta online                       | OK (10/11) | Ventas #5, #6 y #7 sincronizadas; push y ticket verificados |
 | CP-07 | Reportes                           |           |               |
 | CP-08 | Venta offline + sincronización     |           |               |
 | CP-09 | Segundo Run sin bloqueo            |           |               |
@@ -413,3 +413,56 @@ token FCM registrado.
    ```
 
    Respuesta esperada: `204 No Content`.
+
+---
+
+## 7. Verificación Firebase 3B en dispositivo físico — 10/11/2026
+
+Dispositivo: `23049RAD8C` (Xiaomi, Android 14), paquete `com.shoppi` debug.
+
+### 7.1 Remote Config — OK
+- Plantilla publicada: versión **2** con `api_base_url=http://127.0.0.1:8080/api/`,
+  `sync_enabled=true`, `maintenance_mode=false`, `fcm_enabled=true`, `storage_max_mb=5`
+  (verificado por API con la cuenta de servicio).
+- En el dispositivo: `frc_..._firebase_settings.xml` muestra `last_template_version=2`,
+  `last_fetch_status=-1` (éxito) y `minimum_fetch_interval_in_seconds=0` (debug).
+- `RetrofitClient` tomó `api_base_url` y la app habló con la API sin recompilar.
+
+### 7.2 Firebase Auth (custom-token) — OK
+- Logcat: `FirebaseAuth: Notifying id token listeners about user ( user-1 )`.
+- El backend emite el custom-token con `uid = user-{id}` a partir del JWT propio.
+
+### 7.3 FCM — OK (requirió fix de backend)
+- Token registrado en `dispositivos_fcm` (usuario 1, device `23049RAD8C`).
+- Bug encontrado: `FirebaseMessaging.sendAll` usa el endpoint **batch legacy**
+  (`https://fcm.googleapis.com/batch`) que responde **404** → ningún push se entregaba.
+  Corregido en `f3f1f58` usando `sendEach` (API v1 `messages:send`).
+- Tras el fix, al confirmar la venta #7 el backend logueó `Push FCM a usuario 1: 1 ok / 0 fallos`
+  y el dispositivo mostró la notificación:
+  - canal `ventas`, título **"Venta confirmada"**, texto **"Venta #7 registrada por 1.13."**
+- Deep link verificado (frío y con app cerrada):
+  - `push_type=VENTA_CONFIRMADA` + `ventaId=7` → abre **Ticket (T-154)**.
+  - `push_type=STOCK_BAJO` → abre el **historial de inventario**.
+
+### 7.4 Storage — BLOQUEADO (bucket inexistente)
+- `FirebaseAuth` OK (`user-1`), pero `putFile` falla con
+  `StorageException: Object does not exist at location. Code: -13010 HttpResult: 404`.
+- Causa: el proyecto `shoppi-5215c` **no tiene ningún bucket** de Cloud Storage
+  (verificado con la API de GCS: `storage#buckets` vacío y 404 para
+  `shoppi-5215c.firebasestorage.app` / `shoppi-5215c.appspot.com`).
+- Falta el paso manual: **Firebase Console → Storage → Comenzar** (crear bucket + reglas).
+  Mientras no exista, la app mantiene el placeholder de imagen.
+
+### 7.5 Crashlytics — OK
+- `CrashTestActivity` provocó `RuntimeException: Crash de prueba de Crashlytics`.
+- `FirebaseCrashlytics 19.0.3` inicializó y subió el reporte:
+  `CctTransportBackend: Status Code: 200` a `crashlyticsreports-pa.googleapis.com`.
+- `setUserId("user-1")` se ejecuta en el login (helper `Observabilidad`).
+- Pendiente visual: confirmar el issue en Console → Crashlytics (puede tardar minutos).
+
+### 7.6 Analytics — OK (eventos registrados)
+- SDK inicializado (`FA: App measurement initialized`), sesión creada y
+  `FA: Logging telemetry for logEvent from database` al confirmar ventas.
+- Eventos del código: `login`, `venta_confirmada`, `sync_completed`.
+- Para verlos en vivo: Console → Analytics → DebugView con
+  `adb shell setprop debug.firebase.analytics.app com.shoppi` (ya aplicado en el equipo).
