@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import kotlinx.coroutines.launch
 
 /**
  * Punto de entrada de la app.

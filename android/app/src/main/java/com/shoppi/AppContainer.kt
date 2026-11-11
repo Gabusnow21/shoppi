@@ -6,7 +6,8 @@ import com.shoppi.data.remote.ApiRemoteDataSource
 import com.shoppi.data.remote.ApiService
 import com.shoppi.data.remote.RemoteDataSource
 import com.shoppi.data.remote.RetrofitClient
-import com.shoppi.data.remote.StorageDataSourceimport com.shoppi.data.repository.ClienteRepository
+import com.shoppi.data.remote.StorageDataSource
+import com.shoppi.data.repository.ClienteRepository
 import com.shoppi.data.repository.InventarioRepository
 import com.shoppi.data.repository.ProductoRepository
 import com.shoppi.data.repository.ReporteRepository

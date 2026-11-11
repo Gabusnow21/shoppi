@@ -61,9 +61,10 @@ fun LoginScreen(
     val context = LocalContext.current
 
     LaunchedEffect(estado.usuario) {
-        if (estado.usuario != null) {
+        val usuario = estado.usuario
+        if (usuario != null) {
             viewModel.consumirSesion()
-            com.shoppi.Observabilidad.setUsuario(context, estado.usuario.id)
+            com.shoppi.Observabilidad.setUsuario(context, usuario.id)
             com.shoppi.Observabilidad.logEvento(context, "login")
             // Registra el token FCM en el backend (best-effort, no bloquea el login).
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
