@@ -71,7 +71,16 @@ public class NotificacionService {
                 .toList();
 
         try {
-            BatchResponse respuesta = messaging.sendAll(mensajes);
+            // sendEach usa la API v1 (messages:send por mensaje). `sendAll` usa el
+            // endpoint batch legacy (https://fcm.googleapis.com/batch), retirado:
+            // devuelve 404 y ningún push se entrega.
+            BatchResponse respuesta = messaging.sendEach(mensajes);
+            if (respuesta.getFailureCount() > 0) {
+                respuesta.getResponses().stream()
+                        .filter(r -> !r.isSuccessful())
+                        .forEach(r -> log.warn("Push FCM falló para un token: {}",
+                                r.getException() == null ? "sin detalle" : r.getException().getMessage()));
+            }
             log.info("Push FCM a usuario {}: {} ok / {} fallos",
                     usuarioId, respuesta.getSuccessCount(), respuesta.getFailureCount());
         } catch (FirebaseMessagingException e) {
