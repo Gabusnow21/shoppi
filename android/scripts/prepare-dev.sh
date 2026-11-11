@@ -148,7 +148,10 @@ configurar_adb_reverse() {
     fi
 
     local dispositivos
-    dispositivos="$("$adb_bin" devices | awk 'NR > 1 && $2 == "device" { print $1 }')"
+    # 9>&- evita que el servidor adb (proceso de larga vida) herede el lock de
+    # arranque; si lo heredara, el siguiente `prepareDevEnvironment` quedaría
+    # colgado esperando el flock.
+    dispositivos="$("$adb_bin" devices 9>&- | awk 'NR > 1 && $2 == "device" { print $1 }')"
 
     if [[ -z "$dispositivos" ]]; then
         log "AVISO: no hay dispositivo/emulador conectado; no se configuró adb reverse."
@@ -158,7 +161,7 @@ configurar_adb_reverse() {
     local serial
     while IFS= read -r serial; do
         [[ -z "$serial" ]] && continue
-        if "$adb_bin" -s "$serial" reverse tcp:8080 tcp:8080 >/dev/null 2>&1; then
+        if "$adb_bin" -s "$serial" reverse tcp:8080 tcp:8080 9>&- >/dev/null 2>&1; then
             log "adb reverse listo en $serial (dispositivo:8080 -> PC:8080)."
         else
             log "AVISO: no se pudo configurar adb reverse en $serial."
