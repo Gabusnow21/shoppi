@@ -1,3 +1,4 @@
+
 package com.shoppi.service;
 
 import com.shoppi.dto.producto.ProductoRequest;
@@ -16,9 +17,11 @@ import java.util.List;
 /**
  * CRUD de productos con alcance por usuario.
  *
- * <p>Todas las operaciones reciben el id del usuario autenticado y filtran por
- * él: un usuario nunca puede leer, editar ni borrar productos de otro. En esos
- * casos se responde 404 para no revelar su existencia.</p>
+ * Todas las operaciones reciben el id del usuario autenticado y filtran por
+ * él: un usuario nunca puede leer, editar ni borrar productos de otro.
+ *
+ * Los cambios también se sincronizan con Cloud Firestore después
+ * de confirmar la transacción de PostgreSQL.
  */
 @Service
 public class ProductoService {
@@ -29,14 +32,18 @@ public class ProductoService {
     private final ProductoRepository productos;
     private final UsuarioRepository usuarios;
     private final DetalleVentaRepository detallesVenta;
+    private final FirestoreSyncService firestoreSync;
 
     public ProductoService(
             ProductoRepository productos,
             UsuarioRepository usuarios,
-            DetalleVentaRepository detallesVenta) {
+            DetalleVentaRepository detallesVenta,
+            FirestoreSyncService firestoreSync) {
+
         this.productos = productos;
         this.usuarios = usuarios;
         this.detallesVenta = detallesVenta;
+        this.firestoreSync = firestoreSync;
     }
 
     /** Lista los productos del usuario autenticado. */
@@ -56,35 +63,59 @@ public class ProductoService {
     /** Crea un producto para el usuario autenticado. */
     @Transactional
     public ProductoResponse crear(Long usuarioId, ProductoRequest request) {
+
         Usuario usuario = usuarios.findById(usuarioId)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado."));
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Usuario no encontrado."));
 
         Producto producto = new Producto(
                 usuario,
                 request.nombre().trim(),
                 limpiar(request.descripcion()),
                 request.precio(),
-                request.stockActual() != null ? request.stockActual() : STOCK_ACTUAL_POR_DEFECTO,
-                request.stockMinimo() != null ? request.stockMinimo() : STOCK_MINIMO_POR_DEFECTO,
+                request.stockActual() != null
+                        ? request.stockActual()
+                        : STOCK_ACTUAL_POR_DEFECTO,
+                request.stockMinimo() != null
+                        ? request.stockMinimo()
+                        : STOCK_MINIMO_POR_DEFECTO,
                 limpiar(request.categoria()),
-                limpiar(request.imagenUrl()));
+                limpiar(request.imagenUrl())
+        );
 
-        return respuesta(productos.save(producto));
+        Producto guardado = productos.save(producto);
+
+        // Sincronización con Firestore después del commit de PostgreSQL.
+        firestoreSync.guardarProducto(guardado);
+
+        return respuesta(guardado);
     }
 
     /** Actualiza un producto propio o lanza 404. */
     @Transactional
-    public ProductoResponse actualizar(Long usuarioId, Long productoId, ProductoRequest request) {
+    public ProductoResponse actualizar(
+            Long usuarioId,
+            Long productoId,
+            ProductoRequest request) {
+
         Producto producto = buscarPropio(usuarioId, productoId);
 
         producto.actualizar(
                 request.nombre().trim(),
                 limpiar(request.descripcion()),
                 request.precio(),
-                request.stockActual() != null ? request.stockActual() : producto.getStockActual(),
-                request.stockMinimo() != null ? request.stockMinimo() : producto.getStockMinimo(),
+                request.stockActual() != null
+                        ? request.stockActual()
+                        : producto.getStockActual(),
+                request.stockMinimo() != null
+                        ? request.stockMinimo()
+                        : producto.getStockMinimo(),
                 limpiar(request.categoria()),
-                limpiar(request.imagenUrl()));
+                limpiar(request.imagenUrl())
+        );
+
+        // Sincronización con Firestore después del commit de PostgreSQL.
+        firestoreSync.guardarProducto(producto);
 
         return respuesta(producto);
     }
@@ -92,17 +123,24 @@ public class ProductoService {
     /** Elimina un producto propio o lanza 404. */
     @Transactional
     public void eliminar(Long usuarioId, Long productoId) {
+
         Producto producto = buscarPropio(usuarioId, productoId);
+
         if (detallesVenta.existsByProductoId(productoId)) {
             throw new IllegalArgumentException(
                     "No se puede eliminar el producto porque tiene ventas registradas.");
         }
+
         productos.delete(producto);
+
+        // Elimina también el documento remoto después del commit.
+        firestoreSync.eliminarProducto(usuarioId, productoId);
     }
 
     private Producto buscarPropio(Long usuarioId, Long productoId) {
         return productos.findByIdAndUsuarioId(productoId, usuarioId)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado."));
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Producto no encontrado."));
     }
 
     private ProductoResponse respuesta(Producto producto) {
@@ -114,7 +152,8 @@ public class ProductoService {
                 producto.getStockActual(),
                 producto.getStockMinimo(),
                 producto.getCategoria(),
-                producto.getImagenUrl());
+                producto.getImagenUrl()
+        );
     }
 
     private String limpiar(String valor) {

@@ -1,12 +1,14 @@
+
 package com.shoppi.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.cloud.FirestoreClient;
 import com.google.firebase.messaging.FirebaseMessaging;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,19 +28,25 @@ import java.nio.file.Path;
 /**
  * Configuración de Firebase Admin SDK para el backend de Shoppi.
  *
- * <p>Firebase es auxiliar: el backend usa el Admin SDK para emitir custom-tokens
- * (upload a Storage) y enviar push con FCM. No reemplaza la autenticación JWT
- * propia ni la fuente de verdad (PostgreSQL).</p>
+ * Firebase permite utilizar:
+ * - Firebase Authentication.
+ * - Firebase Cloud Messaging (FCM).
+ * - Firebase Storage mediante custom-tokens.
+ * - Cloud Firestore para almacenamiento remoto.
  *
- * <p>La credencial se inyecta con {@code FIREBASE_SERVICE_ACCOUNT_JSON}. Puede ser
- * una ruta absoluta a un archivo JSON, una ruta {@code classpath:...} o el JSON en
- * crudo (útil en IaaS/CI).</p>
+ * PostgreSQL continúa siendo la fuente principal de datos
+ * del backend.
+ *
+ * La credencial se inyecta mediante FIREBASE_SERVICE_ACCOUNT_JSON.
  */
 @Configuration
 public class FirebaseConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(FirebaseConfig.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final Logger log =
+            LoggerFactory.getLogger(FirebaseConfig.class);
+
+    private static final ObjectMapper objectMapper =
+            new ObjectMapper();
 
     @Bean
     public FirebaseApp firebaseApp(
@@ -50,7 +58,8 @@ public class FirebaseConfig {
                     "FIREBASE_SERVICE_ACCOUNT_JSON es obligatoria. "
                             + "Descarga la clave privada desde Firebase Console "
                             + "(Configuración del proyecto -> Cuentas de servicio) "
-                            + "y define la variable o shoppi.firebase.service-account-json.");
+                            + "y define la variable o shoppi.firebase.service-account-json."
+            );
         }
 
         String json = leerJson(raw.trim());
@@ -59,16 +68,24 @@ public class FirebaseConfig {
 
         if (!StringUtils.hasText(projectId)) {
             throw new IllegalStateException(
-                    "El JSON de la cuenta de servicio no contiene project_id.");
+                    "El JSON de la cuenta de servicio no contiene project_id."
+            );
         }
 
         GoogleCredentials credentials = GoogleCredentials.fromStream(
-                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
+                new ByteArrayInputStream(
+                        json.getBytes(StandardCharsets.UTF_8)
+                )
+        );
 
         if (!FirebaseApp.getApps().isEmpty()) {
             FirebaseApp existing = FirebaseApp.getInstance();
-            log.info("FirebaseApp ya inicializado para el proyecto {}",
-                    existing.getOptions().getProjectId());
+
+            log.info(
+                    "FirebaseApp ya inicializado para el proyecto {}",
+                    existing.getOptions().getProjectId()
+            );
+
             return existing;
         }
 
@@ -78,8 +95,12 @@ public class FirebaseConfig {
                 .build();
 
         FirebaseApp app = FirebaseApp.initializeApp(options);
-        log.info("FirebaseApp inicializado para el proyecto {}",
-                app.getOptions().getProjectId());
+
+        log.info(
+                "FirebaseApp inicializado para el proyecto {}",
+                app.getOptions().getProjectId()
+        );
+
         return app;
     }
 
@@ -93,23 +114,44 @@ public class FirebaseConfig {
         return FirebaseMessaging.getInstance(app);
     }
 
+    /**
+     * Conexión con Cloud Firestore.
+     */
+    @Bean
+    public Firestore firestore(FirebaseApp app) {
+        log.info("Configurando conexión con Cloud Firestore");
+
+        return FirestoreClient.getFirestore(app);
+    }
+
     private String leerJson(String raw) throws IOException {
+
         if (raw.startsWith("{")) {
             return raw;
         }
 
         if (raw.startsWith("classpath:")) {
-            String resource = raw.substring("classpath:".length());
-            try (InputStream stream = new ClassPathResource(resource).getInputStream()) {
-                return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            String resource =
+                    raw.substring("classpath:".length());
+
+            try (InputStream stream =
+                         new ClassPathResource(resource).getInputStream()) {
+
+                return new String(
+                        stream.readAllBytes(),
+                        StandardCharsets.UTF_8
+                );
             }
         }
 
         Path path = Path.of(raw);
+
         if (!Files.isRegularFile(path)) {
             throw new IllegalStateException(
-                    "No se encontró el archivo de cuenta de servicio: " + path);
+                    "No se encontró el archivo de cuenta de servicio: " + path
+            );
         }
+
         return Files.readString(path, StandardCharsets.UTF_8);
     }
 }
