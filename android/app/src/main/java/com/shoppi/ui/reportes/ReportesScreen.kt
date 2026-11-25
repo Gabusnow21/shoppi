@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -63,6 +64,7 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportesScreen(
+    onVolver: () -> Unit,
     viewModel: ReportesViewModel = viewModel(factory = reportesViewModelFactory()),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -79,6 +81,14 @@ fun ReportesScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Reportes") },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = viewModel::recargar, enabled = !estado.cargando) {
                         Icon(
@@ -198,9 +208,15 @@ private fun ContenidoVentas(estado: ReportesUiState, onPeriodo: (PeriodoReporte)
 }
 
 private fun rangoTexto(reporte: ReporteVentas): String {
-    val inicio = reporte.fechaInicio?.format(FECHA) ?: "…"
-    val fin = reporte.fechaFin?.format(FECHA) ?: "…"
-    return "${reporte.periodo.etiqueta} · $inicio – $fin"
+    val inicio = reporte.fechaInicio?.format(FECHA)
+    val fin = reporte.fechaFin?.format(FECHA)
+    val rango = when {
+        inicio != null && fin != null -> "$inicio – $fin"
+        inicio != null -> "desde $inicio"
+        fin != null -> "hasta $fin"
+        else -> "Sin fechas definidas"
+    }
+    return "${reporte.periodo.etiqueta} · $rango"
 }
 
 @Composable

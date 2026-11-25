@@ -7,10 +7,22 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 /**
- * Modo de tema seleccionable (SYSTEM/LIGHT/DARK).
- * El toggle persistido en DataStore se conecta en tareas posteriores.
+ * Modo de tema seleccionable.
+ *
+ * Se persiste en `ThemePreferences` y se aplica en `MainActivity`: SYSTEM sigue
+ * al dispositivo, LIGHT y DARK fuerzan el modo.
  */
-enum class ThemeMode { SYSTEM, LIGHT, DARK }
+enum class ThemeMode {
+    SYSTEM,
+    LIGHT,
+    DARK;
+
+    companion object {
+        /** Tolerante a valores desconocidos para no romper lecturas antiguas. */
+        fun fromStorage(valor: String?): ThemeMode =
+            entries.firstOrNull { it.name == valor } ?: SYSTEM
+    }
+}
 
 private val ShoppiDarkColors = darkColorScheme(
     primary = Accent,
@@ -37,7 +49,7 @@ private val ShoppiLightColors = lightColorScheme(
     onSurfaceVariant = OnBackgroundSecLight,
     outline = BorderSubtleLight,
     error = Danger,
-    tertiary = Warning,
+    tertiary = WarningLight,
 )
 
 /**

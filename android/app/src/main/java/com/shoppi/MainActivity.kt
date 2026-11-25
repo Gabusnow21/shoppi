@@ -8,13 +8,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.shoppi.ui.navigation.Routes
 import com.shoppi.ui.navigation.ShoppiNavGraph
 import com.shoppi.ui.theme.ShoppiTheme
+import com.shoppi.ui.theme.ThemeMode
 
 /** Activity única; toda la UI vive en Compose (Navigation-Compose). */
 class MainActivity : ComponentActivity() {
@@ -43,7 +47,13 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ShoppiTheme {
+            val themeMode by container.tema.modo.collectAsState()
+            val darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            ShoppiTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

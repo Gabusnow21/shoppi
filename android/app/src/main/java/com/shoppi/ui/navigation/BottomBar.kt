@@ -2,9 +2,9 @@ package com.shoppi.ui.navigation
 
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material3.Icon
@@ -29,7 +29,7 @@ private val bottomDestinations = listOf(
     BottomDestination(Routes.PRODUCTOS, "Productos", Icons.Filled.Inventory),
     BottomDestination(Routes.TERMINAL, "Vender", Icons.Filled.PointOfSale),
     BottomDestination(Routes.CLIENTES, "Clientes", Icons.Filled.People),
-    BottomDestination(Routes.REPORTES, "Reportes", Icons.Filled.BarChart),
+    BottomDestination(Routes.MAS, "Más", Icons.Filled.MoreHoriz),
 )
 
 /**

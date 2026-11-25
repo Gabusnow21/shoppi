@@ -71,7 +71,7 @@ class InventarioRepository(
         if (producto.remoteId == null) {
             return Resultado.Error(
                 "El producto todavía no está sincronizado. Esperá a que se " +
-                    "actualice y volvé a intentar."
+                    "actualizá y volvé a intentar."
             )
         }
         if (cantidad <= 0) {

@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
@@ -33,7 +34,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shoppi.config.RemoteConfigManager
 import com.shoppi.data.model.ProductoEnStock
 import com.shoppi.ui.components.EmptyState
+import com.shoppi.ui.components.ThemeSelector
 import com.shoppi.ui.theme.Dimens
+import com.shoppi.ui.theme.ThemeMode
 import com.shoppi.util.Formatos
 
 /**
@@ -48,18 +51,26 @@ fun DashboardScreen(
     onCerrarSesion: () -> Unit,
     onNuevaVenta: () -> Unit,
     onVerReportes: () -> Unit,
+    themeMode: ThemeMode,
+    onCambiarTema: (ThemeMode) -> Unit,
     viewModel: DashboardViewModel,
 ) {
     val syncHabilitado by RemoteConfigManager.syncEnabledFlow.collectAsState()
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val refrescando by viewModel.refrescando.collectAsStateWithLifecycle()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(Dimens.ScreenPadding),
-        verticalArrangement = Arrangement.spacedBy(Dimens.CardPadding),
+    PullToRefreshBox(
+        isRefreshing = refrescando,
+        onRefresh = viewModel::recargar,
+        modifier = Modifier.fillMaxSize(),
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(Dimens.ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(Dimens.CardPadding),
+        ) {
         if (!syncHabilitado) {
             Text(
                 text = "Sincronización pausada por configuración remota.",
@@ -83,7 +94,7 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = viewModel::cargar) {
+            IconButton(onClick = viewModel::recargar) {
                 Icon(
                     imageVector = Icons.Filled.Refresh,
                     contentDescription = "Actualizar resumen",
@@ -176,6 +187,30 @@ fun DashboardScreen(
                     )
                 }
 
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimens.CardPadding),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.InputPadding),
+                    ) {
+                        Text(
+                            text = "Apariencia",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        ThemeSelector(
+                            modo = themeMode,
+                            onSeleccionar = onCambiarTema,
+                        )
+                    }
+                }
+
                 Button(
                     onClick = onNuevaVenta,
                     modifier = Modifier.fillMaxWidth(),
@@ -198,6 +233,7 @@ fun DashboardScreen(
         }
 
         Spacer(Modifier.height(Dimens.InputPadding))
+        }
     }
 }
 

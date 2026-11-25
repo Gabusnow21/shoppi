@@ -34,9 +34,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shoppi.data.model.MetodoPago
-import com.shoppi.data.model.SyncState
 import com.shoppi.data.model.Venta
 import com.shoppi.ui.components.EmptyState
+import com.shoppi.ui.components.SyncStateBadge
 import com.shoppi.ui.theme.Dimens
 import com.shoppi.util.Formatos
 
@@ -143,18 +143,9 @@ private fun TicketContenido(venta: Venta, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    text = if (venta.syncState == SyncState.SYNCED) {
-                        "Sincronizada"
-                    } else {
-                        "Pendiente de sincronizar"
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (venta.syncState == SyncState.SYNCED) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    },
+                SyncStateBadge(
+                    state = venta.syncState,
+                    mostrarSincronizado = true,
                 )
             }
         }

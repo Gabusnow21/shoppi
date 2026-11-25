@@ -203,7 +203,7 @@ fun LoginScreen(
             onClick = onIrARegistro,
             enabled = !estado.cargando,
         ) {
-            Text("¿No tienes cuenta? Regístrate")
+            Text("¿No tenés cuenta? Registrate")
         }
     }
 }
