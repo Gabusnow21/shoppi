@@ -23,6 +23,7 @@ import com.shoppi.ui.dashboard.DashboardViewModel
 import com.shoppi.ui.inventario.InventarioScreen
 import com.shoppi.ui.login.LoginScreen
 import com.shoppi.ui.login.RegisterScreen
+import com.shoppi.ui.mas.MasScreen
 import com.shoppi.ui.productos.ProductoFormScreen
 import com.shoppi.ui.productos.ProductoListScreen
 import com.shoppi.ui.reportes.ReportesScreen
@@ -30,6 +31,7 @@ import com.shoppi.ui.ventas.CarritoScreen
 import com.shoppi.ui.ventas.PuntoVentaScreen
 import com.shoppi.ui.ventas.TicketScreen
 import com.shoppi.ui.ventas.TicketViewModel
+import com.shoppi.ui.ventas.VentaListScreen
 import com.shoppi.ui.ventas.VentaViewModel
 
 /**
@@ -154,9 +156,26 @@ fun ShoppiNavGraph(
                     onEditar = { id -> navController.navigate(Routes.clienteForm(id)) },
                 )
             }
-            composable(Routes.REPORTES) { ReportesScreen() }
+            composable(Routes.MAS) {
+                MasScreen(
+                    onVentas = { navController.navigate(Routes.VENTAS) },
+                    onInventario = { navController.navigate(Routes.INVENTARIO) },
+                    onReportes = { navController.navigate(Routes.REPORTES) },
+                )
+            }
 
             // --- Sub-rutas ---
+            composable(Routes.VENTAS) {
+                VentaListScreen(
+                    onVolver = { navController.popBackStack() },
+                    onAbrirTicket = { ventaId ->
+                        navController.navigate(Routes.ticket(ventaId))
+                    },
+                )
+            }
+            composable(Routes.REPORTES) {
+                ReportesScreen(onVolver = { navController.popBackStack() })
+            }
             composable(Routes.INVENTARIO) {
                 InventarioScreen(onVolver = { navController.popBackStack() })
             }
@@ -212,10 +231,15 @@ fun ShoppiNavGraph(
                 TicketScreen(
                     ventaId = ventaId,
                     onVolver = {
-                        // Si se abrió desde un push, vuelve al dashboard.
-                        navController.navigate(Routes.DASHBOARD) {
-                            popUpTo(Routes.DASHBOARD) { inclusive = true }
-                            launchSingleTop = true
+                        // Vuelve a la lista si venimos de ella; desde un push
+                        // (sin back stack) cae al dashboard.
+                        if (navController.previousBackStackEntry != null) {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate(Routes.DASHBOARD) {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
                     },
                     viewModel = ticketViewModel,

@@ -14,14 +14,16 @@ object Routes {
     const val PRODUCTOS = "productos"
     const val TERMINAL = "terminal"
     const val CLIENTES = "clientes"
-    const val REPORTES = "reportes"
+    const val MAS = "mas"
 
     // Sub-rutas
+    const val VENTAS = "ventas"
     const val INVENTARIO = "inventario/historial"
     const val PRODUCTO_FORM = "productoForm?productoId={productoId}"
     const val CLIENTE_FORM = "clienteForm?clienteId={clienteId}"
     const val CARRITO = "carrito/confirmacio"
     const val TICKET = "ticket/{ventaId}"
+    const val REPORTES = "reportes"
 
     const val ARG_PRODUCTO_FORM_ID = "productoId"
     const val ARG_CLIENTE_FORM_ID = "clienteId"
@@ -34,5 +36,5 @@ object Routes {
     fun ticket(ventaId: Long) = "ticket/$ventaId"
 
     /** Rutas que muestran la BottomBar. */
-    val topLevel = setOf(DASHBOARD, PRODUCTOS, TERMINAL, CLIENTES, REPORTES)
+    val topLevel = setOf(DASHBOARD, PRODUCTOS, TERMINAL, CLIENTES, MAS)
 }
