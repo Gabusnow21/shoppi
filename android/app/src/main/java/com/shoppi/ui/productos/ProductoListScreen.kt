@@ -144,7 +144,7 @@ fun ProductoListScreen(
     productoAEliminar?.let { producto ->
         ConfirmDialog(
             titulo = "Eliminar producto",
-            mensaje = "¿Seguro que quieres eliminar \"${producto.nombre}\"?",
+            mensaje = "¿Seguro que querés eliminar \"${producto.nombre}\"?",
             onConfirmar = {
                 viewModel.eliminar(producto.id)
                 productoAEliminar = null

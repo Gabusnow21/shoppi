@@ -127,7 +127,7 @@ fun ClienteListScreen(
     clienteAEliminar?.let { cliente ->
         ConfirmDialog(
             titulo = "Eliminar cliente",
-            mensaje = "¿Seguro que quieres eliminar \"${cliente.nombre}\"?",
+            mensaje = "¿Seguro que querés eliminar \"${cliente.nombre}\"?",
             onConfirmar = {
                 viewModel.eliminar(cliente.id)
                 clienteAEliminar = null
