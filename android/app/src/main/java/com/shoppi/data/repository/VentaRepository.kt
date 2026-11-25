@@ -80,4 +80,13 @@ class VentaRepository(
     }
 
     suspend fun porId(id: String): Venta? = dao.porId(id)
+
+    /**
+     * Venta por id remoto: es el id que llega en el push `VENTA_CONFIRMADA`
+     * (el id de PostgreSQL, no el UUID local).
+     */
+    suspend fun porRemoteId(remoteId: Long): Venta? {
+        val usuarioId = session.idUsuario() ?: return null
+        return dao.porRemoteId(usuarioId, remoteId)
+    }
 }
