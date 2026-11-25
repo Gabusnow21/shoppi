@@ -61,9 +61,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.shoppi.ShoppiApp
 import com.shoppi.data.model.MovimientoInventario
-import com.shoppi.data.model.SyncState
 import com.shoppi.data.model.TipoMovimiento
 import com.shoppi.ui.components.EmptyState
+import com.shoppi.ui.components.SyncStateBadge
 import com.shoppi.ui.theme.Dimens
 import com.shoppi.util.Formatos
 
@@ -281,13 +281,11 @@ private fun MovimientoRow(movimiento: MovimientoInventario) {
                     }
                     append(" · ")
                     append(Formatos.fecha(movimiento.fecha))
-                    if (movimiento.syncState != SyncState.SYNCED) {
-                        append(" · pendiente de sincronizar")
-                    }
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            SyncStateBadge(movimiento.syncState)
         }
 
         Text(

@@ -26,7 +26,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.shoppi.data.model.Producto
-import com.shoppi.data.model.SyncState
 import com.shoppi.ui.theme.Dimens
 import com.shoppi.util.Formatos
 
@@ -95,17 +94,7 @@ fun ProductoCard(
                     stockMinimo = producto.stockMinimo,
                 )
                 Spacer(Modifier.width(4.dp))
-                if (producto.syncState != SyncState.SYNCED) {
-                    Text(
-                        text = if (producto.syncState == SyncState.FAILED) "Error" else "Pendiente",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (producto.syncState == SyncState.FAILED) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    )
-                }
+                SyncStateBadge(producto.syncState)
             }
             IconButton(
                 onClick = onEliminar,

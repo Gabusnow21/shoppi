@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shoppi.data.model.Cliente
-import com.shoppi.data.model.SyncState
 import com.shoppi.ui.theme.Dimens
 
 /**
@@ -98,21 +97,7 @@ fun ClienteCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (cliente.syncState != SyncState.SYNCED) {
-                    Text(
-                        text = if (cliente.syncState == SyncState.FAILED) {
-                            "Error de sincronización"
-                        } else {
-                            "Pendiente de sincronizar"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (cliente.syncState == SyncState.FAILED) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    )
-                }
+                SyncStateBadge(cliente.syncState)
             }
 
             IconButton(onClick = onEliminar) {
