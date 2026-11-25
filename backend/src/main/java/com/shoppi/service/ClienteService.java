@@ -1,3 +1,4 @@
+
 package com.shoppi.service;
 
 import com.shoppi.dto.cliente.ClienteRequest;
@@ -12,25 +13,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * CRUD de clientes con alcance por usuario.
- *
- * <p>Todas las operaciones reciben el id del usuario autenticado y filtran por
- * él: un usuario nunca puede leer, editar ni borrar clientes de otro. En esos
- * casos se responde 404 para no revelar su existencia.</p>
- */
 @Service
 public class ClienteService {
 
     private final ClienteRepository clientes;
     private final UsuarioRepository usuarios;
+    private final FirestoreSyncService firestoreSync;
 
-    public ClienteService(ClienteRepository clientes, UsuarioRepository usuarios) {
+    public ClienteService(
+            ClienteRepository clientes,
+            UsuarioRepository usuarios,
+            FirestoreSyncService firestoreSync) {
+
         this.clientes = clientes;
         this.usuarios = usuarios;
+        this.firestoreSync = firestoreSync;
     }
 
-    /** Lista los clientes del usuario autenticado. */
+    // Lista los clientes del usuario autenticado.
     @Transactional(readOnly = true)
     public List<ClienteResponse> listar(Long usuarioId) {
         return clientes.findByUsuarioId(usuarioId).stream()
@@ -38,51 +38,73 @@ public class ClienteService {
                 .toList();
     }
 
-    /** Obtiene un cliente propio o lanza 404. */
+    // Obtiene un cliente propio o lanza 404.
     @Transactional(readOnly = true)
     public ClienteResponse obtener(Long usuarioId, Long clienteId) {
         return respuesta(buscarPropio(usuarioId, clienteId));
     }
 
-    /** Crea un cliente para el usuario autenticado. */
+    // Crea un cliente para el usuario autenticado.
     @Transactional
     public ClienteResponse crear(Long usuarioId, ClienteRequest request) {
+
         Usuario usuario = usuarios.findById(usuarioId)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado."));
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Usuario no encontrado."));
 
         Cliente cliente = new Cliente(
                 usuario,
                 request.nombre().trim(),
                 limpiar(request.telefono()),
                 limpiar(request.email()),
-                limpiar(request.direccion()));
+                limpiar(request.direccion())
+        );
 
-        return respuesta(clientes.save(cliente));
+        Cliente guardado = clientes.saveAndFlush(cliente);
+
+        firestoreSync.guardarCliente(guardado);
+
+        return respuesta(guardado);
     }
 
-    /** Actualiza un cliente propio o lanza 404. */
+    // Actualiza un cliente propio o lanza 404.
     @Transactional
-    public ClienteResponse actualizar(Long usuarioId, Long clienteId, ClienteRequest request) {
+    public ClienteResponse actualizar(
+            Long usuarioId,
+            Long clienteId,
+            ClienteRequest request) {
+
         Cliente cliente = buscarPropio(usuarioId, clienteId);
 
         cliente.actualizar(
                 request.nombre().trim(),
                 limpiar(request.telefono()),
                 limpiar(request.email()),
-                limpiar(request.direccion()));
+                limpiar(request.direccion())
+        );
 
-        return respuesta(cliente);
+        Cliente actualizado = clientes.saveAndFlush(cliente);
+
+        firestoreSync.guardarCliente(actualizado);
+
+        return respuesta(actualizado);
     }
 
-    /** Elimina un cliente propio o lanza 404. */
+    // Elimina un cliente propio o lanza 404.
     @Transactional
     public void eliminar(Long usuarioId, Long clienteId) {
-        clientes.delete(buscarPropio(usuarioId, clienteId));
+
+        Cliente cliente = buscarPropio(usuarioId, clienteId);
+
+        clientes.delete(cliente);
+
+        firestoreSync.eliminarCliente(usuarioId, clienteId);
     }
 
     private Cliente buscarPropio(Long usuarioId, Long clienteId) {
         return clientes.findByIdAndUsuarioId(clienteId, usuarioId)
-                .orElseThrow(() -> new EntityNotFoundException("Cliente no encontrado."));
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Cliente no encontrado."));
     }
 
     private ClienteResponse respuesta(Cliente cliente) {
@@ -91,7 +113,8 @@ public class ClienteService {
                 cliente.getNombre(),
                 cliente.getTelefono(),
                 cliente.getEmail(),
-                cliente.getDireccion());
+                cliente.getDireccion()
+        );
     }
 
     private String limpiar(String valor) {

@@ -20,3 +20,4 @@ shoppi:
     expiration-minutes: 60
   firebase:
     service-account-json: classpath:firebase-test-service-account.json
+    firestore-enabled: false

@@ -1,3 +1,4 @@
+
 package com.shoppi.service;
 
 import com.shoppi.dto.venta.DetalleVentaRequest;
@@ -31,18 +32,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Registro y consulta de ventas.
- *
- * <p>Crear una venta calcula subtotal, IVA (13 %) y total, descuenta el stock de
- * cada producto y registra el movimiento de inventario, todo en la misma
- * transacción. Si un producto no tiene stock suficiente, no se guarda nada.</p>
- */
 @Service
 public class VentaService {
 
-    /** IVA de El Salvador; debe coincidir con {@code VentaCalculator} de Android. */
-    private static final BigDecimal TASA_IMPUESTO = new BigDecimal("0.13");
+    private static final BigDecimal TASA_IMPUESTO =
+            new BigDecimal("0.13");
+
     private static final String METODO_PAGO_POR_DEFECTO = "EFECTIVO";
 
     private final VentaRepository ventas;
@@ -51,6 +46,7 @@ public class VentaService {
     private final InventarioRepository inventarios;
     private final UsuarioRepository usuarios;
     private final NotificacionService notificaciones;
+    private final FirestoreSyncService firestoreSync;
 
     public VentaService(
             VentaRepository ventas,
@@ -58,36 +54,48 @@ public class VentaService {
             ProductoRepository productos,
             InventarioRepository inventarios,
             UsuarioRepository usuarios,
-            NotificacionService notificaciones) {
+            NotificacionService notificaciones,
+            FirestoreSyncService firestoreSync) {
+
         this.ventas = ventas;
         this.clientes = clientes;
         this.productos = productos;
         this.inventarios = inventarios;
         this.usuarios = usuarios;
         this.notificaciones = notificaciones;
+        this.firestoreSync = firestoreSync;
     }
 
-    /** Registra una venta, descuenta stock y deja el historial de inventario. */
+    /**
+     * Registra una venta, descuenta stock y deja el historial.
+     * Los cambios se sincronizan con Firestore después del commit.
+     */
     @Transactional
     public VentaResponse crear(Long usuarioId, VentaRequest request) {
+
         Usuario usuario = usuarios.findById(usuarioId)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado."));
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Usuario no encontrado."));
 
         Cliente cliente = null;
+
         if (request.clienteId() != null) {
-            cliente = clientes.findByIdAndUsuarioId(request.clienteId(), usuarioId)
-                    .orElseThrow(() -> new EntityNotFoundException("Cliente no encontrado."));
+            cliente = clientes.findByIdAndUsuarioId(
+                    request.clienteId(), usuarioId
+            ).orElseThrow(() ->
+                    new EntityNotFoundException("Cliente no encontrado."));
         }
 
         BigDecimal subtotal = BigDecimal.ZERO;
         List<LineaVenta> lineas = new ArrayList<>();
 
         for (DetalleVentaRequest detalle : request.detalles()) {
-            Producto producto = productos.findByIdAndUsuarioId(detalle.productoId(), usuarioId)
-                    .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado."));
 
-            // Valida stock y descuenta sobre la entidad gestionada; si otra línea
-            // falla, la transacción revierte también estos cambios.
+            Producto producto = productos.findByIdAndUsuarioId(
+                    detalle.productoId(), usuarioId
+            ).orElseThrow(() ->
+                    new EntityNotFoundException("Producto no encontrado."));
+
             producto.registrarSalida(detalle.cantidad());
 
             BigDecimal importe = detalle.precioUnitario()
@@ -95,11 +103,21 @@ public class VentaService {
                     .setScale(2, RoundingMode.HALF_UP);
 
             subtotal = subtotal.add(importe);
-            lineas.add(new LineaVenta(producto, detalle.cantidad(), detalle.precioUnitario(), importe));
+
+            lineas.add(new LineaVenta(
+                    producto,
+                    detalle.cantidad(),
+                    detalle.precioUnitario(),
+                    importe
+            ));
         }
 
         subtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal impuestos = subtotal.multiply(TASA_IMPUESTO).setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal impuestos = subtotal
+                .multiply(TASA_IMPUESTO)
+                .setScale(2, RoundingMode.HALF_UP);
+
         BigDecimal total = subtotal.add(impuestos);
 
         Venta venta = new Venta(
@@ -108,36 +126,58 @@ public class VentaService {
                 subtotal,
                 impuestos,
                 total,
-                normalizarMetodoPago(request.metodoPago()));
+                normalizarMetodoPago(request.metodoPago())
+        );
 
         for (LineaVenta linea : lineas) {
             venta.agregarDetalle(new DetalleVenta(
                     linea.producto(),
                     linea.cantidad(),
                     linea.precioUnitario(),
-                    linea.importe()));
+                    linea.importe()
+            ));
         }
 
         Venta guardada = ventas.save(venta);
 
+        // Sincronizar la venta completa con Firestore.
+        firestoreSync.guardarVenta(guardada);
+
         for (LineaVenta linea : lineas) {
-            inventarios.save(new Inventario(
+
+            // Registrar movimiento de salida en PostgreSQL.
+            Inventario movimiento = inventarios.save(new Inventario(
                     linea.producto(),
                     TipoMovimiento.SALIDA,
                     linea.cantidad(),
-                    "Venta #" + guardada.getId()));
+                    "Venta #" + guardada.getId()
+            ));
+
+            // Sincronizar el stock actualizado.
+            firestoreSync.guardarProducto(linea.producto());
+
+            // Sincronizar el movimiento de inventario.
+            firestoreSync.guardarMovimiento(movimiento);
         }
 
-        notificaciones.enviarVentaConfirmada(usuarioId, guardada.getId(), total);
+        notificaciones.enviarVentaConfirmada(
+                usuarioId,
+                guardada.getId(),
+                total
+        );
+
         for (LineaVenta linea : lineas) {
+
             Producto producto = linea.producto();
+
             if (producto.getStockActual() <= producto.getStockMinimo()) {
                 notificaciones.enviarStockBajo(
                         usuarioId,
                         producto.getId(),
                         producto.getNombre(),
                         producto.getStockActual(),
-                        producto.getStockMinimo());
+                        producto.getStockMinimo()
+                );
             }
         }
 
@@ -145,8 +185,7 @@ public class VentaService {
     }
 
     /**
-     * Lista ventas del usuario, con filtros opcionales por cliente y rango de
-     * fechas (ambas inclusive, en formato {@code YYYY-MM-DD}).
+     * Lista las ventas del usuario con filtros opcionales.
      */
     @Transactional(readOnly = true)
     public List<VentaResponse> listar(
@@ -155,23 +194,37 @@ public class VentaService {
             LocalDate fechaInicio,
             LocalDate fechaFin) {
 
-        if (fechaInicio != null && fechaFin != null && fechaInicio.isAfter(fechaFin)) {
-            throw new IllegalArgumentException("fechaInicio no puede ser posterior a fechaFin.");
+        if (fechaInicio != null && fechaFin != null
+                && fechaInicio.isAfter(fechaFin)) {
+            throw new IllegalArgumentException(
+                    "fechaInicio no puede ser posterior a fechaFin.");
         }
 
-        LocalDateTime desde = fechaInicio != null ? fechaInicio.atStartOfDay() : null;
-        LocalDateTime hasta = fechaFin != null ? fechaFin.atTime(LocalTime.MAX) : null;
+        LocalDateTime desde = fechaInicio != null
+                ? fechaInicio.atStartOfDay() : null;
 
-        return ventas.findAll(filtro(usuarioId, clienteId, desde, hasta)).stream()
+        LocalDateTime hasta = fechaFin != null
+                ? fechaFin.atTime(LocalTime.MAX) : null;
+
+        return ventas.findAll(
+                        filtro(usuarioId, clienteId, desde, hasta)
+                ).stream()
                 .map(this::respuesta)
                 .toList();
     }
 
-    /** Obtiene una venta propia con su detalle o lanza 404. */
+    /**
+     * Obtiene una venta propia con su detalle.
+     */
     @Transactional(readOnly = true)
     public VentaResponse obtener(Long usuarioId, Long ventaId) {
-        return respuesta(ventas.findByIdAndUsuarioId(ventaId, usuarioId)
-                .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada.")));
+
+        return respuesta(
+                ventas.findByIdAndUsuarioId(ventaId, usuarioId)
+                        .orElseThrow(() ->
+                                new EntityNotFoundException(
+                                        "Venta no encontrada."))
+        );
     }
 
     private Specification<Venta> filtro(
@@ -181,32 +234,55 @@ public class VentaService {
             LocalDateTime hasta) {
 
         return (root, query, cb) -> {
+
             List<Predicate> predicados = new ArrayList<>();
-            predicados.add(cb.equal(root.get("usuario").get("id"), usuarioId));
+
+            predicados.add(cb.equal(
+                    root.get("usuario").get("id"),
+                    usuarioId
+            ));
 
             if (clienteId != null) {
-                predicados.add(cb.equal(root.get("cliente").get("id"), clienteId));
-            }
-            if (desde != null) {
-                predicados.add(cb.greaterThanOrEqualTo(root.get("fecha"), desde));
-            }
-            if (hasta != null) {
-                predicados.add(cb.lessThanOrEqualTo(root.get("fecha"), hasta));
+                predicados.add(cb.equal(
+                        root.get("cliente").get("id"),
+                        clienteId
+                ));
             }
 
-            query.orderBy(cb.desc(root.get("fecha")), cb.desc(root.get("id")));
-            return cb.and(predicados.toArray(new Predicate[0]));
+            if (desde != null) {
+                predicados.add(cb.greaterThanOrEqualTo(
+                        root.get("fecha"), desde
+                ));
+            }
+
+            if (hasta != null) {
+                predicados.add(cb.lessThanOrEqualTo(
+                        root.get("fecha"), hasta
+                ));
+            }
+
+            query.orderBy(
+                    cb.desc(root.get("fecha")),
+                    cb.desc(root.get("id"))
+            );
+
+            return cb.and(
+                    predicados.toArray(new Predicate[0])
+            );
         };
     }
 
     private VentaResponse respuesta(Venta venta) {
-        List<DetalleVentaResponse> detalles = venta.getDetalles().stream()
-                .map(detalle -> new DetalleVentaResponse(
-                        detalle.getProducto().getId(),
-                        detalle.getCantidad(),
-                        detalle.getPrecioUnitario(),
-                        detalle.getSubtotal()))
-                .toList();
+
+        List<DetalleVentaResponse> detalles =
+                venta.getDetalles().stream()
+                        .map(detalle -> new DetalleVentaResponse(
+                                detalle.getProducto().getId(),
+                                detalle.getCantidad(),
+                                detalle.getPrecioUnitario(),
+                                detalle.getSubtotal()
+                        ))
+                        .toList();
 
         return new VentaResponse(
                 venta.getId(),
@@ -215,18 +291,21 @@ public class VentaService {
                 venta.getImpuestos(),
                 venta.getTotal(),
                 venta.getMetodoPago(),
-                venta.getCliente() != null ? venta.getCliente().getId() : null,
-                detalles);
+                venta.getCliente() != null
+                        ? venta.getCliente().getId() : null,
+                detalles
+        );
     }
 
     private String normalizarMetodoPago(String valor) {
+
         if (valor == null || valor.isBlank()) {
             return METODO_PAGO_POR_DEFECTO;
         }
+
         return valor.trim().toUpperCase(Locale.ROOT);
     }
 
-    /** Datos de una línea ya validada, antes de construir la venta. */
     private record LineaVenta(
             Producto producto,
             int cantidad,
