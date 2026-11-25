@@ -28,5 +28,9 @@ val OnBackgroundSecLight = Color(0xFF616161)
 // --- Compartidos (mismos en ambos modos) ---
 val Accent = Color(0xFF4CAF50)   // botones primarios / CTA venta
 val Danger = Color(0xFFFF5252)   // stock bajo / borrar
-val Warning = Color(0xFFFFC107)  // stock mínimo / badges
+val Warning = Color(0xFFFFC107)  // stock mínimo / badges (modo oscuro)
 val OnAccent = Color(0xFFFFFFFF) // texto/icono sobre Accent
+
+// --- Solo modo claro ---
+// Ámbar más oscuro para que "Pendiente"/"Stock bajo" se lean sobre fondo claro.
+val WarningLight = Color(0xFF8A5A00)

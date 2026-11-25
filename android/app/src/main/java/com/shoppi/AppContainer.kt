@@ -19,6 +19,7 @@ import com.shoppi.sync.NetworkMonitor
 import com.shoppi.sync.SyncManager
 import com.shoppi.sync.SyncScheduler
 import com.shoppi.util.SessionManager
+import com.shoppi.util.ThemePreferences
 
 /**
  * Inyección de dependencias manual.
@@ -32,6 +33,8 @@ class AppContainer(contexto: Context) {
     private val appContext = contexto.applicationContext
 
     val session: SessionManager = SessionManager(appContext)
+
+    val tema: ThemePreferences = ThemePreferences(appContext)
 
     val database: AppDatabase = AppDatabase.obtener(appContext)
 
