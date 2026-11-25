@@ -1,12 +1,9 @@
 package com.shoppi.ui.productos
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import android.net.Uri
 import com.shoppi.data.model.Producto
-import com.shoppi.data.remote.StorageDataSource
 import com.shoppi.data.repository.ProductoRepository
 import com.shoppi.data.repository.Resultado
 import com.shoppi.util.ErrorProducto
@@ -25,9 +22,6 @@ data class ProductoFormUiState(
     val stockActual: String = "0",
     val stockMinimo: String = "5",
     val categoria: String = "",
-    val imagenUrl: String? = null,
-    val imagenLocalUri: Uri? = null,
-    val subiendoImagen: Boolean = false,
     val cargando: Boolean = false,
     val error: String? = null,
     val guardado: Boolean = false,
@@ -37,11 +31,11 @@ data class ProductoFormUiState(
  * ViewModel de alta/edición de producto.
  *
  * Usa [ProductoValidators.FormularioProducto] para validar exactamente igual
- * que el repositorio antes de escribir en Room.
+ * que el repositorio antes de escribir en Room. Sin imagen: Storage quedó
+ * descartado.
  */
 class ProductoFormViewModel(
     private val productos: ProductoRepository,
-    private val storage: StorageDataSource,
     private val productoId: String?,
 ) : ViewModel() {
 
@@ -65,7 +59,6 @@ class ProductoFormViewModel(
                         stockActual = producto.stockActual.toString(),
                         stockMinimo = producto.stockMinimo.toString(),
                         categoria = producto.categoria,
-                        imagenUrl = producto.imagenUrl,
                     )
                 }
             }
@@ -78,24 +71,6 @@ class ProductoFormViewModel(
     fun cambiarStockActual(valor: String) = actualizar { it.copy(stockActual = valor) }
     fun cambiarStockMinimo(valor: String) = actualizar { it.copy(stockMinimo = valor) }
     fun cambiarCategoria(valor: String) = actualizar { it.copy(categoria = valor) }
-
-    fun seleccionarImagen(uri: Uri) {
-        _estado.update { it.copy(imagenLocalUri = uri, error = null) }
-    }
-
-    fun subirImagen(context: Context) {
-        val uri = _estado.value.imagenLocalUri ?: return
-        if (_estado.value.subiendoImagen) return
-        _estado.update { it.copy(subiendoImagen = true, error = null) }
-        viewModelScope.launch {
-            val resultado = storage.subirImagen(context, uri)
-            resultado.onSuccess { url ->
-                _estado.update { it.copy(subiendoImagen = false, imagenUrl = url, imagenLocalUri = null) }
-            }.onFailure { e ->
-                _estado.update { it.copy(subiendoImagen = false, error = e.message ?: "No se pudo subir la imagen.") }
-            }
-        }
-    }
 
     fun guardar() {
         val actual = _estado.value
@@ -123,7 +98,6 @@ class ProductoFormViewModel(
                     stockActual = formulario.stockActual.trim().toInt(),
                     stockMinimo = formulario.stockMinimo.trim().toInt(),
                     categoria = actual.categoria,
-                    imagenUrl = actual.imagenUrl,
                 )
             } else {
                 productos.actualizar(
@@ -134,7 +108,6 @@ class ProductoFormViewModel(
                         stockActual = formulario.stockActual.trim().toInt(),
                         stockMinimo = formulario.stockMinimo.trim().toInt(),
                         categoria = actual.categoria.trim(),
-                        imagenUrl = actual.imagenUrl ?: productoOriginal!!.imagenUrl,
                     ),
                 )
             }
@@ -175,12 +148,11 @@ class ProductoFormViewModel(
     companion object {
         fun factory(
             productos: ProductoRepository,
-            storage: StorageDataSource,
             productoId: String?,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                ProductoFormViewModel(productos, storage, productoId) as T
+                ProductoFormViewModel(productos, productoId) as T
         }
     }
 }
