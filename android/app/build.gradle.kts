@@ -121,9 +121,6 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.storage)
 
-    // Cloud Firestore.
-    implementation(libs.firebase.firestore)
-
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)
