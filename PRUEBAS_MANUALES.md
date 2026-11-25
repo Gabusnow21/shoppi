@@ -508,3 +508,37 @@ Dispositivo: `23049RAD8C` (Xiaomi, Android 14), paquete `com.shoppi` debug.
 - Reglas publicadas: `usuarios/{usuarioId}/**` con lectura solo del dueño
   (`request.auth.uid == "user-" + usuarioId`) y escritura cerrada.
 - `mvn test` → 85/85; `:app:assembleDebug` → OK.
+
+---
+
+## 8. Pantallas nuevas — dashboard y ticket (24/11/2026)
+
+### 8.1 Dashboard real
+1. Abrir la app con sesión iniciada.
+2. Verificar que ya **no** aparece "Ventas de hoy: próximamente".
+
+Resultado esperado:
+
+- [ ] Tarjeta **Ventas de hoy** con la cantidad y el monto del día.
+- [ ] Tarjeta **Stock bajo** con la cantidad de productos bajo mínimo.
+- [ ] **Valor del inventario** con el total.
+- [ ] Lista **Por reponer** con los productos más urgentes (máx. 3).
+- [ ] Botones **Nueva venta**, **Ver reportes** y **Cerrar sesión**.
+- [ ] Sin conexión: se ve "Sin conexión" y el botón **Reintentar**.
+
+### 8.2 Ticket desde el push
+1. Registrar una venta (CP-06) y esperar el push "Venta confirmada".
+2. Tocar la notificación (o abrir con el deep link):
+   ```bash
+   adb shell am force-stop com.shoppi
+   adb shell am start -n com.shoppi/.MainActivity --es push_type VENTA_CONFIRMADA --el ventaId <id>
+   ```
+3. Verificar el detalle: productos, cantidades, subtotal, IVA y total.
+
+Resultado esperado:
+
+- [ ] Encabezado con "Shoppi", el número de venta y la fecha.
+- [ ] Estado **Sincronizada** (o **Pendiente de sincronizar** si aún no se empujó).
+- [ ] Cliente y método de pago correctos.
+- [ ] Los importes coinciden con la venta registrada.
+- [ ] Si la venta no existe localmente: se ve "Ticket no disponible" con **Reintentar**.
