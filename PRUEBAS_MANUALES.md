@@ -125,6 +125,28 @@ PGPASSWORD=shoppi psql -h localhost -p 5433 -U shoppi -d shoppi \
   -c "select id,nombre,precio,stock_actual from productos order by id desc limit 5;"
 ```
 
+**Cómo ver el log del espejo Firestore (paso 2):**
+
+El mensaje `Producto N sincronizado con Firestore para usuario 1` lo escribe el
+**backend**, no la app (no aparece en Logcat). El script lo guarda en
+`/tmp/shoppi-backend.log` (ruta configurable con `SHOPPI_BACKEND_LOG`).
+
+Déjalo abierto **antes** de crear el producto:
+
+```bash
+tail -f /tmp/shoppi-backend.log | grep -i firestore
+```
+
+Si ya lo creaste, revisa los últimos eventos:
+
+```bash
+grep -i "FirestoreSyncService" /tmp/shoppi-backend.log | tail -20
+```
+
+La escritura es **asíncrona** (hilo `firestore-sync`, después del commit), así que el
+mensaje puede tardar 1–2 segundos. Si arrancaste el backend a mano con
+`./mvnw spring-boot:run`, los logs salen en esa terminal.
+
 ### CP-04 — Crear cliente
 
 1. Ir a **Clientes**.
@@ -289,6 +311,12 @@ curl http://localhost:8080/api/ping
 # Log del backend
 tail -f /tmp/shoppi-backend.log
 
+# Solo los logs del espejo Firestore (en vivo)
+tail -f /tmp/shoppi-backend.log | grep -i firestore
+
+# Últimas sincronizaciones Firestore
+grep -i "FirestoreSyncService" /tmp/shoppi-backend.log | tail -20
+
 # PID del backend iniciado por el script
 cat /tmp/shoppi-backend.pid
 
@@ -321,6 +349,7 @@ PGPASSWORD=shoppi psql -h localhost -p 5433 -U shoppi -d shoppi
 | `curl http://localhost:8080/api/ping` falla | API detenida | Presionar Run o `./gradlew :app:installDebug`. |
 | La API no conecta a PostgreSQL | Puerto incorrecto | Verificar `pg_isready -h localhost -p 5433`; el script detecta 5433/5432. |
 | El segundo Run queda colgado | Lock heredado por el backend | Ya corregido en `prepare-dev.sh`; si pasa, `./gradlew stopDevBackend` y reintentar. |
+| No veo “Producto N sincronizado con Firestore” | Se buscó en Logcat, pero el log es del backend | `tail -f /tmp/shoppi-backend.log \| grep -i firestore` (la escritura es asíncrona, tarda 1–2 s). |
 | El catálogo de ventas aparece vacío | Sesión creada después del ViewModel | Ya corregido: los repositorios reaccionan a cambios de sesión. |
 | No aparece “Ver carrito” | Barra tapada por la lista | Ya corregido en `PuntoVentaScreen.kt`. |
 | El teléfono no aparece en `adb devices` | Depuración USB o cable | Revisar autorización USB y probar otro cable/puerto. |
