@@ -34,7 +34,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shoppi.config.RemoteConfigManager
 import com.shoppi.data.model.ProductoEnStock
 import com.shoppi.ui.components.EmptyState
+import com.shoppi.ui.components.ThemeSelector
 import com.shoppi.ui.theme.Dimens
+import com.shoppi.ui.theme.ThemeMode
 import com.shoppi.util.Formatos
 
 /**
@@ -49,6 +51,8 @@ fun DashboardScreen(
     onCerrarSesion: () -> Unit,
     onNuevaVenta: () -> Unit,
     onVerReportes: () -> Unit,
+    themeMode: ThemeMode,
+    onCambiarTema: (ThemeMode) -> Unit,
     viewModel: DashboardViewModel,
 ) {
     val syncHabilitado by RemoteConfigManager.syncEnabledFlow.collectAsState()
@@ -181,6 +185,30 @@ fun DashboardScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimens.CardPadding),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.InputPadding),
+                    ) {
+                        Text(
+                            text = "Apariencia",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        ThemeSelector(
+                            modo = themeMode,
+                            onSeleccionar = onCambiarTema,
+                        )
+                    }
                 }
 
                 Button(

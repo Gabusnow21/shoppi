@@ -28,11 +28,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.shoppi.ui.components.ThemeSelector
 import com.shoppi.ui.theme.Dimens
+import com.shoppi.ui.theme.ThemeMode
 
 /**
  * Hub "Más": agrupa las secciones que no son destino principal de la barra
- * inferior (ventas, inventario y reportes).
+ * inferior (ventas, inventario y reportes) y la preferencia de apariencia.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +42,8 @@ fun MasScreen(
     onVentas: () -> Unit,
     onInventario: () -> Unit,
     onReportes: () -> Unit,
+    themeMode: ThemeMode,
+    onCambiarTema: (ThemeMode) -> Unit,
 ) {
     Scaffold(
         topBar = { TopAppBar(title = { Text("Más") }) },
@@ -77,6 +81,31 @@ fun MasScreen(
                     descripcion = "Ventas por período y stock",
                     onClick = onReportes,
                 )
+            }
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimens.CardPadding),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.InputPadding),
+                    ) {
+                        Text(
+                            text = "Apariencia",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        ThemeSelector(
+                            modo = themeMode,
+                            onSeleccionar = onCambiarTema,
+                        )
+                    }
+                }
             }
         }
     }

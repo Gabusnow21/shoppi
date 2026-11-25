@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.shoppi.ShoppiApp
 import com.shoppi.ui.clientes.ClienteFormScreen
@@ -113,6 +114,7 @@ fun ShoppiNavGraph(
                 val dashboardViewModel: DashboardViewModel = viewModel(
                     factory = DashboardViewModel.factory(container.reportes),
                 )
+                val themeMode by container.tema.modo.collectAsStateWithLifecycle()
                 DashboardScreen(
                     nombreUsuario = container.session.nombreCompleto(),
                     onCerrarSesion = {
@@ -134,6 +136,8 @@ fun ShoppiNavGraph(
                             launchSingleTop = true
                         }
                     },
+                    themeMode = themeMode,
+                    onCambiarTema = container.tema::seleccionar,
                     viewModel = dashboardViewModel,
                 )
             }
@@ -157,10 +161,13 @@ fun ShoppiNavGraph(
                 )
             }
             composable(Routes.MAS) {
+                val themeMode by container.tema.modo.collectAsStateWithLifecycle()
                 MasScreen(
                     onVentas = { navController.navigate(Routes.VENTAS) },
                     onInventario = { navController.navigate(Routes.INVENTARIO) },
                     onReportes = { navController.navigate(Routes.REPORTES) },
+                    themeMode = themeMode,
+                    onCambiarTema = container.tema::seleccionar,
                 )
             }
 
