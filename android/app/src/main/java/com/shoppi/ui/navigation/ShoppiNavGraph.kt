@@ -18,8 +18,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.shoppi.ShoppiApp
 import com.shoppi.ui.clientes.ClienteFormScreen
 import com.shoppi.ui.clientes.ClienteListScreen
-import com.shoppi.ui.components.PlaceholderScreen
 import com.shoppi.ui.dashboard.DashboardScreen
+import com.shoppi.ui.dashboard.DashboardViewModel
 import com.shoppi.ui.inventario.InventarioScreen
 import com.shoppi.ui.login.LoginScreen
 import com.shoppi.ui.login.RegisterScreen
@@ -28,13 +28,15 @@ import com.shoppi.ui.productos.ProductoListScreen
 import com.shoppi.ui.reportes.ReportesScreen
 import com.shoppi.ui.ventas.CarritoScreen
 import com.shoppi.ui.ventas.PuntoVentaScreen
+import com.shoppi.ui.ventas.TicketScreen
+import com.shoppi.ui.ventas.TicketViewModel
 import com.shoppi.ui.ventas.VentaViewModel
 
 /**
- * Grafo de navegación base. Los destinos apuntan a placeholders que se
- * reemplazan por las pantallas reales en las tareas 2.2+.
+ * Grafo de navegación de la app.
  *
- * `startDestination` lo decide `MainActivity` según la sesión guardada.
+ * `startDestination` lo decide `MainActivity` según la sesión guardada y los
+ * deep links de los push (`VENTA_CONFIRMADA` → ticket, `STOCK_BAJO` → inventario).
  */
 @Composable
 fun ShoppiNavGraph(
@@ -106,6 +108,9 @@ fun ShoppiNavGraph(
 
             // --- BottomBar ---
             composable(Routes.DASHBOARD) {
+                val dashboardViewModel: DashboardViewModel = viewModel(
+                    factory = DashboardViewModel.factory(container.reportes),
+                )
                 DashboardScreen(
                     nombreUsuario = container.session.nombreCompleto(),
                     onCerrarSesion = {
@@ -117,6 +122,17 @@ fun ShoppiNavGraph(
                             launchSingleTop = true
                         }
                     },
+                    onNuevaVenta = {
+                        navController.navigate(Routes.TERMINAL) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onVerReportes = {
+                        navController.navigate(Routes.REPORTES) {
+                            launchSingleTop = true
+                        }
+                    },
+                    viewModel = dashboardViewModel,
                 )
             }
             composable(Routes.PRODUCTOS) {
@@ -144,10 +160,6 @@ fun ShoppiNavGraph(
             composable(Routes.INVENTARIO) {
                 InventarioScreen(onVolver = { navController.popBackStack() })
             }
-            composable(
-                route = Routes.PRODUCTO_DETAIL,
-                arguments = listOf(navArgument(Routes.ARG_PRODUCTO_ID) { type = NavType.StringType }),
-            ) { PlaceholderScreen("Detalle producto (T-124)") }
             composable(
                 route = Routes.PRODUCTO_FORM,
                 arguments = listOf(
@@ -192,11 +204,23 @@ fun ShoppiNavGraph(
             composable(
                 route = Routes.TICKET,
                 arguments = listOf(navArgument(Routes.ARG_VENTA_ID) { type = NavType.LongType }),
-            ) { PlaceholderScreen("Ticket (T-154)") }
-            composable(
-                route = Routes.REPORTE_DETAIL,
-                arguments = listOf(navArgument(Routes.ARG_PERIODO) { type = NavType.StringType }),
-            ) { PlaceholderScreen("Detalle reporte (T-161)") }
+            ) { entry ->
+                val ventaId = entry.arguments?.getLong(Routes.ARG_VENTA_ID) ?: -1L
+                val ticketViewModel: TicketViewModel = viewModel(
+                    factory = TicketViewModel.factory(ventaId, container.ventas),
+                )
+                TicketScreen(
+                    ventaId = ventaId,
+                    onVolver = {
+                        // Si se abrió desde un push, vuelve al dashboard.
+                        navController.navigate(Routes.DASHBOARD) {
+                            popUpTo(Routes.DASHBOARD) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    viewModel = ticketViewModel,
+                )
+            }
         }
     }
 }
