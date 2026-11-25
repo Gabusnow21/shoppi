@@ -269,7 +269,7 @@ Resultado esperado:
 |------|-------------------------------------|-----------|---------------|
 | CP-01 | Login                              | OK (10/11) | Email/clave real; sesión persistida y logout/login probados |
 | CP-02 | Registro                           |           |               |
-| CP-03 | Crear producto                     | PARCIAL   | Sin imagen: bucket de Storage no existe (ver §7.4) |
+| CP-03 | Crear producto                     | OK        | Sin imagen por decisión: Storage descartado (ver §7.4) |
 | CP-04 | Crear cliente                      |           |               |
 | CP-05 | Movimiento de inventario           | OK (indirecto) | Stock descontado por el servidor tras cada venta |
 | CP-06 | Venta online                       | OK (10/11) | Ventas #5, #6 y #7 sincronizadas; push y ticket verificados |
@@ -444,14 +444,12 @@ Dispositivo: `23049RAD8C` (Xiaomi, Android 14), paquete `com.shoppi` debug.
   - `push_type=VENTA_CONFIRMADA` + `ventaId=7` → abre **Ticket (T-154)**.
   - `push_type=STOCK_BAJO` → abre el **historial de inventario**.
 
-### 7.4 Storage — BLOQUEADO (bucket inexistente)
-- `FirebaseAuth` OK (`user-1`), pero `putFile` falla con
+### 7.4 Storage — DESCARTADO (24/11/2026)
+- Se evaluó y **no se usa**: el proyecto `shoppi-5215c` no tiene bucket de Cloud Storage
+  (`storage#buckets` vacío; 404 para `firestore`/`appspot`) y `putFile` fallaba con
   `StorageException: Object does not exist at location. Code: -13010 HttpResult: 404`.
-- Causa: el proyecto `shoppi-5215c` **no tiene ningún bucket** de Cloud Storage
-  (verificado con la API de GCS: `storage#buckets` vacío y 404 para
-  `shoppi-5215c.firebasestorage.app` / `shoppi-5215c.appspot.com`).
-- Falta el paso manual: **Firebase Console → Storage → Comenzar** (crear bucket + reglas).
-  Mientras no exista, la app mantiene el placeholder de imagen.
+- Decisión: no se crea bucket ni se publican reglas; se prioriza el espejo de bases con
+  Firestore. El código de subida sigue en la app pero no se usa: queda el placeholder.
 
 ### 7.5 Crashlytics — OK
 - `CrashTestActivity` provocó `RuntimeException: Crash de prueba de Crashlytics`.
@@ -466,3 +464,18 @@ Dispositivo: `23049RAD8C` (Xiaomi, Android 14), paquete `com.shoppi` debug.
 - Eventos del código: `login`, `venta_confirmada`, `sync_completed`.
 - Para verlos en vivo: Console → Analytics → DebugView con
   `adb shell setprop debug.firebase.analytics.app com.shoppi` (ya aplicado en el equipo).
+
+### 7.7 Firestore — OK (espejo de bases, 24/11/2026)
+- Rama `feature/firestore-sync` mergeada en `develop` (`0341641`), con correcciones
+  `9aea901` (tipos nativos + escritura asíncrona + reintentos).
+- `FirestoreSyncService` escribe en
+  `usuarios/{usuarioId}/{productos|clientes|ventas|inventario}/{id}` después del commit,
+  en un hilo aparte (`firestore-sync`) con hasta 4 intentos.
+- Verificado con un producto creado por API (`id 16`):
+  - log: `Producto 16 sincronizado con Firestore para usuario 1`
+  - documento `usuarios/1/productos/16` con `precio: doubleValue 19.99`,
+    `stockActual`/`stockMinimo` como enteros y `createdAt`/`updatedAt` como timestamp.
+  - al eliminarlo: `Producto 16 eliminado de Firestore...` y el documento deja de existir.
+- Reglas publicadas: `usuarios/{usuarioId}/**` con lectura solo del dueño
+  (`request.auth.uid == "user-" + usuarioId`) y escritura cerrada.
+- `mvn test` → 85/85; `:app:assembleDebug` → OK.
