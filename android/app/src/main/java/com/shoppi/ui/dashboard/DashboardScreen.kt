@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
@@ -52,14 +53,20 @@ fun DashboardScreen(
 ) {
     val syncHabilitado by RemoteConfigManager.syncEnabledFlow.collectAsState()
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val refrescando by viewModel.refrescando.collectAsStateWithLifecycle()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(Dimens.ScreenPadding),
-        verticalArrangement = Arrangement.spacedBy(Dimens.CardPadding),
+    PullToRefreshBox(
+        isRefreshing = refrescando,
+        onRefresh = viewModel::recargar,
+        modifier = Modifier.fillMaxSize(),
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(Dimens.ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(Dimens.CardPadding),
+        ) {
         if (!syncHabilitado) {
             Text(
                 text = "Sincronización pausada por configuración remota.",
@@ -83,7 +90,7 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = viewModel::cargar) {
+            IconButton(onClick = viewModel::recargar) {
                 Icon(
                     imageVector = Icons.Filled.Refresh,
                     contentDescription = "Actualizar resumen",
@@ -198,6 +205,7 @@ fun DashboardScreen(
         }
 
         Spacer(Modifier.height(Dimens.InputPadding))
+        }
     }
 }
 
