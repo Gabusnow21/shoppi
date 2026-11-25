@@ -37,6 +37,8 @@ shoppi:
   firebase:
     # Obligatoria en runtime. Puede ser ruta absoluta a un JSON o el JSON en crudo.
     service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
+    # Espejo de lectura hacia Firestore (PostgreSQL sigue siendo la fuente de verdad).
+    firestore-enabled: ${FIRESTORE_ENABLED:true}
 
 management:
   endpoints:
